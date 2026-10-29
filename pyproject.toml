@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycg3"
+version = "0.1.0"
+description = "A pure Python implementation of VISL CG-3 (Constraint Grammar 3)"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "GrammarSoft ApS / VISL CG-3 Contributors" },
+    { name = "pycg3 contributors" }
+]
+keywords = ["nlp", "linguistics", "constraint-grammar", "cg3", "vislcg3"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Text Processing :: Linguistic",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[project.scripts]
+pycg3 = "pycg3.cli:main"
+vislcg3-py = "pycg3.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pycg3*"]
