@@ -206,3 +206,8 @@ The entire test suite executes in ~10 milliseconds with negligible RAM usage (< 
 ## License
 
 GNU General Public License v3 or later (matching VISL CG-3).
+
+
+## CITE
+
+Jack Rueter & Olga Erina, pycg3
