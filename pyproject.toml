@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pycg3"
 version = "0.2.0"
-description = "Pure Python VISL CG-3 (Constraint Grammar 3): hfst analyses in, disambiguated and mapped readings out"
+description = "Pure Python VISL CG-3 (Constraint Grammar 3) engine that runs the grammars you provide"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
@@ -30,9 +30,6 @@ license-files = ["LICENSE"]
 [project.urls]
 Homepage = "https://github.com/rueter/pycg3"
 Issues = "https://github.com/rueter/pycg3/issues"
-
-[project.optional-dependencies]
-hfst = ["pyhfst>=1.3.0"]
 
 [project.scripts]
 pycg3 = "pycg3.cli:main"

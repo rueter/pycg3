@@ -105,48 +105,39 @@ Output:
 
 ## Using it as a library (and from UralicNLP)
 
+pycg3 knows no language. It runs the Constraint Grammar files **you** provide on analyses **you** provide.
+
 ```python
 from pycg3 import Cg
 
-cg = Cg.for_language("myv")            # the grammars of the installed package pycg3-lang-myv, in running order
-text = cg.analyse_and_disambiguate("Течи кортатано ялганзо.")      # tokenise + the package's FST (pyhfst) + the grammars
+cg = Cg.from_files("disambiguator.cg3", "functions.cg3")     # grammars, run in the order given
 
-# or hand it analyses in the shape pyhfst gives, from whatever analyser you have:
-morphologies = [[["течи+N+Sg+Nom+Indef", 0.0], ["течи+Adv+Sem/Time", 0.0]],      # one list per word:
-                [["кортамс+V+Ind+Prs+ScPl1", 0.0]]]                               #   [analysis, weight] pairs
-result = cg.disambiguate(["Течи", "кортатано"], morphologies)
-# [("Течи", [CgWord, ...]), ("кортатано", [CgWord, ...])]
+# analyses in the shape pyhfst's lookup gives: one list of [analysis, weight] pairs per word
+morphologies = [[["time+N+Sg", 0.0], ["time+V+Inf", 0.0]],
+                [["fly+V+Prs+Sg3", 0.0], ["fly+N+Pl", 0.0]]]
+result = cg.disambiguate(["Time", "flies"], morphologies)
+# [("Time", [CgWord, ...]), ("flies", [CgWord, ...])]
 word = result[0][1][0]
 word.lemma, word.tags, word.weight, word.morphology, word.sub_readings   # morphology = tags + <W:..>, like UralicNLP's Cg3Word
 cg.to_morphologies(result)             # back to pyhfst's shape: the input of whatever comes next
 ```
 
-- Several grammars run one after the other, each taking the previous one's output (`vislcg3 -g a | vislcg3 -g b`):
-  `Cg.from_files("disambiguator.cg3", "functions.cg3")`, or `Cg.for_language("myv", stages=["disambiguator"])`.
+- Several grammars run one after the other, each taking the previous one's output (`vislcg3 -g a | vislcg3 -g b`).
+  `Cg([text_or_Grammar, ...], names=[...])` takes grammar texts or parsed grammars instead of files.
 - `Cg(..., trace=True)` puts the rule labels in `CgWord.trace`. `cg.run_text(cg_stream)` is the plain CG stream in, stream out.
-- `ex_pos=True` (an option of `disambiguate`) turns `V Der/NomAct N` into `Ex/V Der/NomAct N` for analysers that do not do that
-  themselves; the language packages ship `analyser-disamb-gt-desc.hfstol`, which does.
+- Compounds (`part#part`) become a reading for the last part with the earlier parts as `sub_readings`. A `+vN` variant
+  tag is dropped from the analyses unless you pass `drop_variants=False`.
 - An empty word in the list (UralicNLP ends a sentence with one) is skipped together with its analyses.
 - Thread-safe: grammars are not changed by running them.
-
-### Language packages and wheels
-
-Everything a language needs travels in one wheel, **pycg3-lang-CODE**: the analyser FST (`analyser-disamb-gt-desc.hfstol`),
-`disambiguator.cg3`, `functions.cg3` (and `dependency.cg3` once pycg3 can run it) and a `metadata.json` that records the
-lang-CODE commit and checksums. The wheel declares an entry point in the group `pycg3.languages`, which is how
-`Cg.for_language("myv")` and `pycg3.available_languages()` find it. Without the wheel, point `PYCG3_DATA` at a directory
-that holds `myv/` (the same files), or call `pycg3.register_language("myv", directory)`.
+- Getting the analyses (an analyser, a tokeniser) and shipping grammars and FSTs for a language is up to the caller.
+  Nothing here depends on `pyhfst`.
 
 ```bash
 pip install build
-python -m build                                             # pycg3-0.2.0-py3-none-any.whl and the sdist, in dist/
-python tools/build_language_wheel.py --lang myv --out wheels    # pycg3_lang_myv-YEAR.M.D-py3-none-any.whl
-python tools/build_language_wheel.py --lang mdf --out wheels
-pip install --find-links wheels pycg3 pycg3-lang-myv pycg3-lang-mdf "pyhfst>=1.3"
+python -m build            # pycg3-X.Y.Z-py3-none-any.whl and the sdist, in dist/
 ```
 
-All wheels are `py3-none-any`: pure Python plus data files, so one wheel of each serves every platform and Python >= 3.9.
-Analysing needs `pyhfst` (`pip install pycg3[hfst]`); running grammars on analyses you already have needs nothing.
+The wheel is `py3-none-any`: pure Python, so one wheel serves every platform and Python >= 3.9.
 
 ---
 
@@ -181,7 +172,7 @@ python3 tools/run_upstream.py /path/to/cg3/test [T_Name]   # CG-3's own regressi
 python3 tools/make_fidelity_cases.py                        # rebuild tests/fidelity_cases.json from vislcg3
 ```
 
-`tests/test_fidelity.py` replays 140 small cases that were run through the real `vislcg3`.
+`tests/test_fidelity.py` replays 147 small cases that were run through the real `vislcg3`.
 
 **Not implemented** (they fail on the CG-3 project's own tests, `tools/run_upstream.py`): dependency and relation
 rules (`SETPARENT`, `SETRELATION`, `#1->2`, `p`/`c`/`s` positions), templates, `WITH`, `MOVE`/`SWITCH`/`SPLITCOHORT`/
