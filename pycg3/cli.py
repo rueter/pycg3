@@ -68,7 +68,7 @@ def main(args=None):
         sys.exit(1)
 
     grammar = GrammarParser().parse(grammar_text)
-    engine = Disambiguator(grammar)
+    engine = Disambiguator(grammar, trace=parsed.trace)
 
     # Input stream
     if parsed.input_file:

@@ -10,31 +10,33 @@ from pycg3.stream import parse_stream
 class Disambiguator:
     """Executes a VISL CG-3 grammar over a stream of SingleWindows."""
 
-    def __init__(self, grammar: Grammar, max_iterations: int = 50):
+    def __init__(self, grammar: Grammar, max_iterations: int = 50, trace: bool = False):
         self.grammar = grammar
+        grammar.trace_mode = trace          # as with vislcg3 -t, readings that rules hit differently stay apart
         self.max_iterations = max_iterations
 
     def run_window(self, window: SingleWindow, num_sections: Optional[int] = None) -> SingleWindow:
         """Run all sections on a single window."""
+        window.mark_end()
         # 1. BEFORE-SECTIONS
         for rule in self.grammar.before_sections:
             rule.apply_to_window(window, self.grammar)
 
-        # 2. SECTIONS
+        # 2. SECTIONS. As in vislcg3, running section k means running the rules of sections 1..k, over and
+        # over until a whole pass changes nothing; only then does the next section join in.
         sections_to_run = self.grammar.sections
         if num_sections is not None:
             sections_to_run = sections_to_run[:num_sections]
 
+        rules_so_far: list = []
         for section_rules in sections_to_run:
-            iteration = 0
-            while iteration < self.max_iterations:
-                iteration += 1
-                section_changed = False
-                for rule in section_rules:
-                    rule_changed = rule.apply_to_window(window, self.grammar)
-                    if rule_changed:
-                        section_changed = True
-                if not section_changed:
+            rules_so_far = rules_so_far + section_rules
+            for _ in range(self.max_iterations):
+                changed = False
+                for rule in rules_so_far:
+                    if rule.apply_to_window(window, self.grammar) and rule.iterates:
+                        changed = True
+                if not changed:
                     break
 
         # 3. AFTER-SECTIONS

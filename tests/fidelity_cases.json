@@ -1,0 +1,884 @@
+[
+ {
+  "name": "edge: 0 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n"
+ },
+ {
+  "name": "edge (no delimiter): 0 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "edge: -1 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n"
+ },
+ {
+  "name": "edge (no delimiter): -1 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "edge: -2 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-2 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n"
+ },
+ {
+  "name": "edge (no delimiter): -2 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-2 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "edge: 0 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS @fire\n"
+ },
+ {
+  "name": "edge (no delimiter): 0 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "edge: 1 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n\"<.>\"\n\t\".\" TS\n"
+ },
+ {
+  "name": "edge (no delimiter): 1 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "edge: 2 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (2 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n"
+ },
+ {
+  "name": "edge (no delimiter): 2 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (2 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "edge: NOT 1 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS @fire\n"
+ },
+ {
+  "name": "edge (no delimiter): NOT 1 EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1 EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "edge: NOT -1 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -1 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<.>\"\n\t\".\" TS @fire\n"
+ },
+ {
+  "name": "edge (no delimiter): NOT -1 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -1 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "edge: 1* EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1* EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<.>\"\n\t\".\" TS\n"
+ },
+ {
+  "name": "edge (no delimiter): 1* EOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1* EOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "edge: -1* BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1* BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<.>\"\n\t\".\" TS @fire\n"
+ },
+ {
+  "name": "edge (no delimiter): -1* BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1* BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "edge: 0* BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<.>\"\n\t\".\" TS\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<.>\"\n\t\".\" TS @fire\n"
+ },
+ {
+  "name": "edge (no delimiter): 0* BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: 0* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: 0* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: 0* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT 0* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 0* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 0* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 0* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 0* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 0* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 0* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 0* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE 0* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 0* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE 0* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 0* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: 1* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: 1* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: 1* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT 1* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 1* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 1* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 1* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 1* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 1* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 1* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 1* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 1* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: -1* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: -1* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: -1* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT -1* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -1* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT -1* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -1* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT -1* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -1* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE -1* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE -1* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE -1* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE -1* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE -1* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE -1* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: *0 (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (*0 (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: *0 (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (*0 (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: *0 (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (*0 (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT *0 (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT *0 (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT *0 (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT *0 (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT *0 (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT *0 (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE *0 (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE *0 (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE *0 (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE *0 (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE *0 (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE *0 (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: 2* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (2* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: 2* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (2* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: 2* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (2* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT 2* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 2* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 2* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 2* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 2* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 2* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 2* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 2* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 2* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 2* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 2* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 2* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: 1** (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1** (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: 1** (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1** (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: 1** (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1** (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT 1** (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1** (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 1** (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1** (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT 1** (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1** (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 1** (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 1** (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 1** (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 1** (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE 1** (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE 1** (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: * (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: * (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: * (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT * (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT * (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT * (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT * (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT * (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT * (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE * (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE * (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE * (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE * (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE * (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE * (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: -* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: -* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: -* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NOT -* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT -* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NOT -* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "scan: NEGATE -* (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE -* (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE -* (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE -* (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "scan: NEGATE -* (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE -* (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n"
+ },
+ {
+  "name": "barrier/link: 0* (TB) BARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* (TB) BARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: NOT 0* (TB) BARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 0* (TB) BARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: 0* (TF) BARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* (TF) BARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: NOT 0* (TF) BARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 0* (TF) BARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: NOT 1* (TF) BARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TF) BARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: NOT -1* (TB) BARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT -1* (TB) BARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: NOT 1* (TF) BARRIER (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TF) BARRIER (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: NOT 1* (TF) BARRIER (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TF) BARRIER (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: NOT 1* (TF) BARRIER (TB)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TF) BARRIER (TB)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: NOT 1* (TG) BARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TG) BARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: NOT 1* (TF) CBARRIER (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1* (TF) CBARRIER (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: 1* (TF) BARRIER (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1* (TF) BARRIER (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: 1* (TF) BARRIER (TE)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1* (TF) BARRIER (TE)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: 0* (TB) BARRIER (TF)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* (TB) BARRIER (TF)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: NOT 0* (TB) BARRIER (TF)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 0* (TB) BARRIER (TF)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: 0* (TF) BARRIER EOS OR BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0* (TF) BARRIER EOS OR BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: 1C (TB)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1C (TB)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: 0 (TA) LINK 1 (TB)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0 (TA) LINK 1 (TB)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: 0 (TA) LINK 1 (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0 (TA) LINK 1 (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: 1 (TB) LINK 1 (TC) LINK 1 (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (1 (TB) LINK 1 (TC) LINK 1 (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: NOT 1 (TB) LINK 1 (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NOT 1 (TB) LINK 1 (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: ((NEGATE -1 BOS OR (TX)) OR (NEGATE 1 EOS OR (TX)))",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (((NEGATE -1 BOS OR (TX)) OR (NEGATE 1 EOS OR (TX)))) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: (0 (TA) LINK 1 (TB)) OR (0 (TC) LINK 1 (TD))",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF ((0 (TA) LINK 1 (TB)) OR (0 (TC) LINK 1 (TD))) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: 0 (TA) LINK (1 (TB)) OR (1 (TX))",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (0 (TA) LINK (1 (TB)) OR (1 (TX))) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: @1 (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (@1 (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: @-1 (TG)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (@-1 (TG)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "barrier/link: -1 (TB) LINK -1 BOS",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (-1 (TB) LINK -1 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "barrier/link: NEGATE -1 (TB) LINK -1 (TA)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (NEGATE -1 (TB) LINK -1 (TA)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD @fire\n\"<e>\"\n\t\"e\" TE @fire\n\"<f>\"\n\t\"f\" TF @fire\n\"<g>\"\n\t\"g\" TG @fire\n"
+ },
+ {
+  "name": "ADD in a later section does not re-run an earlier REMOVE",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nREMOVE (@m) ;\nSECTION\nADD (@m) (Y) ;\n",
+  "input": "\"<a>\"\n\t\"a\" Y\n\t\"a\" W\n\t\"a\" Z\n",
+  "expected": "\"<a>\"\n\t\"a\" Y @m\n\t\"a\" W\n\t\"a\" Z\n"
+ },
+ {
+  "name": "SUBSTITUTE adding a tag does not re-run an earlier REMOVE",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nREMOVE (m) ;\nSECTION\nSUBSTITUTE (Y) (Y m) TARGET (Y) ;\n",
+  "input": "\"<a>\"\n\t\"a\" Y\n\t\"a\" W\n\t\"a\" Z\n",
+  "expected": "\"<a>\"\n\t\"a\" Y m\n\t\"a\" W\n\t\"a\" Z\n"
+ },
+ {
+  "name": "REMOVE does re-run earlier sections",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nSELECT (W) IF (NOT 1* (Q)) ;\nSECTION\nREMOVE (Q) ;\n",
+  "input": "\"<a>\"\n\t\"a\" Y\n\t\"a\" W\n\"<b>\"\n\t\"b\" Q\n\t\"b\" R\n",
+  "expected": "\"<a>\"\n\t\"a\" W\n\"<b>\"\n\t\"b\" R\n"
+ },
+ {
+  "name": "the last reading is never removed",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nREMOVE (Y) ;\n",
+  "input": "\"<a>\"\n\t\"a\" Y\n\t\"a\" Y K\n",
+  "expected": "\"<a>\"\n\t\"a\" Y\n\t\"a\" Y K\n"
+ },
+ {
+  "name": "SELECT on one reading does nothing",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nSELECT (Y) ;\n",
+  "input": "\"<a>\"\n\t\"a\" W\n",
+  "expected": "\"<a>\"\n\t\"a\" W\n"
+ },
+ {
+  "name": "identical readings are merged",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nREMOVE (ZZZ) ;\n",
+  "input": "\"<a>\"\n\t\"a\" N Sg\n\t\"a\" N Sg\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" N Sg\n\t\"a\" V\n"
+ },
+ {
+  "name": "same tags, other order, are merged",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nREMOVE (ZZZ) ;\n",
+  "input": "\"<a>\"\n\t\"a\" N Sg\n\t\"a\" Sg N\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" N Sg\n\t\"a\" V\n"
+ },
+ {
+  "name": "SUBSTITUTE making a duplicate",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nSUBSTITUTE (B) (A) TARGET (*) ;\n",
+  "input": "\"<a>\"\n\t\"a\" N A\n\t\"a\" N B\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" N A\n\t\"a\" V\n"
+ },
+ {
+  "name": "SUBSTITUTE removing a tag making a duplicate",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nSUBSTITUTE (B) (*) TARGET (*) ;\n",
+  "input": "\"<a>\"\n\t\"a\" N A\n\t\"a\" N A B\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" N A\n\t\"a\" V\n"
+ },
+ {
+  "name": "SUBSTITUTE keeps the place of the old tag",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nSUBSTITUTE (B) (X Y) TARGET (*) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A B C\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" A X Y C\n\t\"a\" V\n"
+ },
+ {
+  "name": "MAP once",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nMAP (@x) (N) ;\nMAP (@y) (N) ;\n",
+  "input": "\"<a>\"\n\t\"a\" N\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" N @x\n\t\"a\" V\n"
+ },
+ {
+  "name": "IFF",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nIFF (W) (NEGATE 1* (Q)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" Y\n\t\"a\" W\n\"<b>\"\n\t\"b\" Q\n\t\"b\" R\n\"<.>\"\n\t\".\" S\n",
+  "expected": "\"<a>\"\n\t\"a\" Y\n\"<b>\"\n\t\"b\" Q\n\t\"b\" R\n\"<.>\"\n\t\".\" S\n"
+ },
+ {
+  "name": "SETS heading",
+  "grammar": "SETS\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nDELIMITERS = \"<.>\" ;\nSECTION\nADD (@fire) (*) IF (-1 BOS) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n"
+ },
+ {
+  "name": "CG-2 style contexts after the target",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nSELECT (W) (1 (Q)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" Y\n\t\"a\" W\n\"<b>\"\n\t\"b\" Q\n\t\"b\" R\n",
+  "expected": "\"<a>\"\n\t\"a\" W\n\"<b>\"\n\t\"b\" Q\n\t\"b\" R\n"
+ },
+ {
+  "name": "unification",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST Case = (n sg) (n pl) ;\nSECTION\nSELECT $$Case IF (1 $$Case) ;\n",
+  "input": "\"<a>\"\n\t\"a\" n sg\n\t\"a\" n pl\n\t\"a\" v\n\"<b>\"\n\t\"b\" n pl\n\t\"b\" x\n",
+  "expected": "\"<a>\"\n\t\"a\" n pl\n\"<b>\"\n\t\"b\" n pl\n\t\"b\" x\n"
+ },
+ {
+  "name": "set operators",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = a b c d ;\nLIST B = c d e f ;\nSECTION\nADD (@union) A OR B ;\nADD (@except) A - B ;\nADD (@difference) A \\ B ;\nADD (@symdiff) A ∆ B ;\nADD (@intersect) A ∩ B ;\nADD (@product) A + B ;\n",
+  "input": "\"<s>\"\n\t\"s\" a\n\t\"s\" b c\n\t\"s\" c d\n\t\"s\" d e\n\t\"s\" e f\n\t\"s\" f a\n\t\"s\" a e\n",
+  "expected": "\"<s>\"\n\t\"s\" a @union @except @difference @symdiff\n\t\"s\" b c @union @difference @symdiff @intersect @product\n\t\"s\" c d @union @intersect @product\n\t\"s\" d e @union @symdiff @intersect @product\n\t\"s\" e f @union @symdiff\n\t\"s\" f a @union @difference @symdiff @product\n\t\"s\" a e @union @difference @symdiff @product\n"
+ },
+ {
+  "name": "static tags after the word form",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@seen) (*) (0 (stat)) ;\n",
+  "input": "\"<a>\" stat ic\n\t\"a\" Y\n\"<b>\"\n\t\"b\" Y\n",
+  "expected": "\"<a>\" stat ic\n\t\"a\" Y @seen\n\"<b>\"\n\t\"b\" Y\n"
+ },
+ {
+  "name": "compound readings (sub-readings) travel with their reading",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nREMOVE (W) ;\n",
+  "input": "\"<a>\"\n\t\"a\" Y\n\t\t\"a1\" Y1\n\t\"a\" W\n\t\t\"a2\" W1\n",
+  "expected": "\"<a>\"\n\t\"a\" Y\n\t\t\"a1\" Y1\n"
+ },
+ {
+  "name": "a reading that arrives mapped is not mapped again",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nMAP (@y) (N) ;\n",
+  "input": "\"<a>\"\n\t\"a\" N @x\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" N @x\n\t\"a\" V\n"
+ },
+ {
+  "name": "ADD still adds to a mapped reading",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@y) (N) ;\n",
+  "input": "\"<a>\"\n\t\"a\" N @x\n\t\"a\" V\n",
+  "expected": "\"<a>\"\n\t\"a\" N @x\n\t\"a\" V\n"
+ },
+ {
+  "name": "OR/LINK: ((-1 (TB)) LINK -1 (TA))",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (((-1 (TB)) LINK -1 (TA))) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC @fire\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "OR/LINK: ((1 (TB)) LINK 1 (TC)) OR (0 (TX))",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (((1 (TB)) LINK 1 (TC)) OR (0 (TX))) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "OR/LINK: ((1 (TX)) LINK 1 (TC)) OR ((1 (TB)) LINK 1 (TX)) OR (-1 (TA))",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (((1 (TX)) LINK 1 (TC)) OR ((1 (TB)) LINK 1 (TX)) OR (-1 (TA))) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "OR/LINK: ((1 (TB)) LINK 1 (TC)) LINK 1 (TD)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (((1 (TB)) LINK 1 (TC)) LINK 1 (TD)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA @fire\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ },
+ {
+  "name": "OR/LINK: ((0 (TA)) OR (0 (TB))) LINK 1 (TC)",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST BOS = (>>>) ;\nLIST EOS = (<<<) ;\nSECTION\nADD (@fire) (*) IF (((0 (TA)) OR (0 (TB))) LINK 1 (TC)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n",
+  "expected": "\"<a>\"\n\t\"a\" TA\n\"<b>\"\n\t\"b\" TB @fire\n\"<c>\"\n\t\"c\" TC\n\"<d>\"\n\t\"d\" TD\n\"<e>\"\n\t\"e\" TE\n\"<f>\"\n\t\"f\" TF\n\"<g>\"\n\t\"g\" TG\n"
+ }
+]

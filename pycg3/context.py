@@ -1,257 +1,267 @@
-"""Contextual test evaluation for VISL CG-3."""
+"""Contextual tests, ported from vislcg3's runContextualTest / runSingleTest / doesSetMatchCohort*.
 
-import re
-from typing import List, Optional, Any, Tuple
-from pycg3.cohort import Cohort, Reading, SingleWindow
+The odd corners are deliberate: they are what the real engine does and real grammars depend on them.
+  * the window has a begin cohort (index 0, tag >>>) in front of the real cohorts; the last real cohort answers to <<<
+  * 0* scans both ways, alternating: one to the left, one to the right, two to the left, ...
+  * NOT is applied to the set match of every cohort tested - and to the BARRIER match of a NOT test as well
+  * a scan with * stops at the first cohort that matches the target (even if a LINKed test then fails)
+"""
+
+from typing import Any, Optional, Tuple
+from pycg3.cohort import SingleWindow, Cohort
 from pycg3.set_def import SetDefinition
+
+TRV_BREAK, TRV_BARRIER, TRV_BREAK_DEFAULT = 1, 2, 4
+
+
+class _Ctx:
+    """The dSMC_Context of the C++ code: state shared by the set matches of one cohort test."""
+    __slots__ = ('test', 'not_', 'matched_target', 'matched_tests', 'did_test', 'in_barrier', 'window', 'index')
+
+    def __init__(self, test=None, not_=False, in_barrier=False, window=None, index=0):
+        self.test = test
+        self.not_ = not_
+        self.matched_target = False
+        self.matched_tests = False
+        self.did_test = False
+        self.in_barrier = in_barrier
+        self.window = window
+        self.index = index
 
 
 class ContextualTest:
-    """Represents a single contextual test or link chain."""
+    """One contextual test with its barriers and LINKed tests."""
 
-    __slots__ = (
-        'is_not',
-        'is_negate',
-        'is_scan',
-        'is_careful',
-        'is_self_barrier',
-        'is_self_no_barrier',
-        'is_absolute',
-        'offset',
-        'target',
-        'barrier',
-        'cbarrier',
-        'linked_test',
-        'dep_dir',
-        'raw_pos'
-    )
+    __slots__ = ('target', 'offset', 'scan_first', 'scan_all', 'careful', 'not_', 'negate', 'absolute',
+                 'self_', 'no_barrier', 'all_', 'none_', 'barrier', 'cbarrier', 'linked_test', 'raw_pos', 'ors')
 
-    def __init__(
-        self,
-        target: Any,
-        offset: int = 0,
-        is_scan: bool = False,
-        is_careful: bool = False,
-        is_not: bool = False,
-        is_negate: bool = False,
-        is_absolute: bool = False,
-        barrier: Optional[Any] = None,
-        cbarrier: Optional[Any] = None,
-        linked_test: Optional['ContextualTest'] = None,
-        raw_pos: str = ""
-    ):
+    def __init__(self, target: SetDefinition, offset: int = 0, scan_first: bool = False, scan_all: bool = False,
+                 careful: bool = False, not_: bool = False, negate: bool = False, absolute: bool = False,
+                 self_: bool = False, no_barrier: bool = False, all_: bool = False, none_: bool = False,
+                 barrier: Optional[SetDefinition] = None, cbarrier: Optional[SetDefinition] = None,
+                 linked_test: Optional['ContextualTest'] = None, raw_pos: str = ""):
         self.target = target
         self.offset = offset
-        self.is_scan = is_scan
-        self.is_careful = is_careful
-        self.is_not = is_not
-        self.is_negate = is_negate
-        self.is_absolute = is_absolute
-        self.is_self_barrier = False
-        self.is_self_no_barrier = False
+        self.scan_first = scan_first
+        self.scan_all = scan_all
+        self.careful = careful
+        self.not_ = not_
+        self.negate = negate
+        self.absolute = absolute
+        self.self_ = self_
+        self.no_barrier = no_barrier
+        self.all_ = all_
+        self.none_ = none_
         self.barrier = barrier
         self.cbarrier = cbarrier
         self.linked_test = linked_test
-        self.dep_dir: Optional[str] = None
         self.raw_pos = raw_pos
+        self.ors: list = []        # (test) OR (test): holds if any alternative does
 
-    def evaluate(
-        self,
-        window: SingleWindow,
-        cohort_idx: int,
-        grammar: Any,
-        reading: Optional[Reading] = None
-    ) -> bool:
-        """Evaluate this contextual test relative to cohort at index cohort_idx."""
-        res, _ = self._eval_internal(window, cohort_idx, grammar, reading)
-        if self.is_negate:
-            res = not res
-        return res
+    @property
+    def is_scan(self) -> bool:
+        return self.scan_first or self.scan_all
 
-    def _eval_internal(
-        self,
-        window: SingleWindow,
-        cohort_idx: int,
-        grammar: Any,
-        reading: Optional[Reading] = None
-    ) -> Tuple[bool, Optional[int]]:
-        cohorts = window.cohorts
-        num_cohorts = len(cohorts)
-
-        # Check self-barrier on origin if requested
-        if self.is_self_barrier and not self.is_self_no_barrier:
-            if 0 <= cohort_idx < num_cohorts:
-                origin_c = cohorts[cohort_idx]
-                if self.barrier and self._matches_cohort(self.barrier, origin_c, grammar, False):
-                    return False, None
-                if self.cbarrier and self._matches_cohort(self.cbarrier, origin_c, grammar, True):
-                    return False, None
-
-        # Absolute position: @1 or @-1
-        if self.is_absolute:
-            target_idx = (self.offset - 1) if self.offset > 0 else (num_cohorts + self.offset)
-            if 0 <= target_idx < num_cohorts:
-                matches = self._check_target(cohorts[target_idx], grammar)
-                if self.is_not:
-                    matches = not matches
-                if matches:
-                    if self.linked_test:
-                        link_ok = self.linked_test.evaluate(window, target_idx, grammar)
-                        return (link_ok, target_idx if link_ok else None)
-                    return True, target_idx
-            else:
-                if self.is_not and not self.linked_test:
-                    return True, None
-            return False, None
-
-        # Dependency test
-        if self.dep_dir:
-            curr_c = cohorts[cohort_idx]
-            target_indices = []
-            if self.dep_dir == 'p':
-                for r in curr_c.active_readings():
-                    if r.parent_id is not None:
-                        for idx, other_c in enumerate(cohorts):
-                            if other_c.global_number == r.parent_id:
-                                target_indices.append(idx)
-            elif self.dep_dir == 'c':
-                for idx, other_c in enumerate(cohorts):
-                    for r in other_c.active_readings():
-                        if r.parent_id == curr_c.global_number:
-                            target_indices.append(idx)
-                            break
-
-            for tidx in target_indices:
-                matches = self._check_target(cohorts[tidx], grammar)
-                if self.is_not:
-                    matches = not matches
-                if matches:
-                    if self.linked_test:
-                        if self.linked_test.evaluate(window, tidx, grammar):
-                            return True, tidx
-                    else:
-                        return True, tidx
-            if not target_indices and self.is_not and not self.linked_test:
-                return True, None
-            return False, None
-
-        # Non-scanning test: fixed offset (0, 1, -1, 2, -2)
-        if not self.is_scan:
-            target_idx = cohort_idx + self.offset
-            if 0 <= target_idx < num_cohorts:
-                target_c = cohorts[target_idx]
-                matches = self._check_target(target_c, grammar)
-                if self.is_not:
-                    matches = not matches
-                if matches:
-                    if self.linked_test:
-                        link_ok = self.linked_test.evaluate(window, target_idx, grammar)
-                        return (link_ok, target_idx if link_ok else None)
-                    return True, target_idx
-                return False, None
-            else:
-                # Out of bounds
-                if self.is_not and not self.linked_test:
-                    return True, None
-                return False, None
-
-        # Scanning test: *1, *-1, *0
-        step = 1 if self.offset >= 0 else -1
-        start_idx = cohort_idx + (self.offset if self.offset != 0 else step)
-
-        curr_idx = start_idx
-        while 0 <= curr_idx < num_cohorts:
-            curr_c = cohorts[curr_idx]
-
-            # Check barriers
-            if self.barrier and self._matches_cohort(self.barrier, curr_c, grammar, careful=False):
-                matches = self._check_target(curr_c, grammar)
-                if self.is_not:
-                    matches = not matches
-                if matches:
-                    if self.linked_test:
-                        if self.linked_test.evaluate(window, curr_idx, grammar):
-                            return True, curr_idx
-                    else:
-                        return True, curr_idx
-                if self.is_not and not self.linked_test:
-                    return True, None
-                return False, None
-
-            if self.cbarrier and self._matches_cohort(self.cbarrier, curr_c, grammar, careful=True):
-                matches = self._check_target(curr_c, grammar)
-                if self.is_not:
-                    matches = not matches
-                if matches:
-                    if self.linked_test:
-                        if self.linked_test.evaluate(window, curr_idx, grammar):
-                            return True, curr_idx
-                    else:
-                        return True, curr_idx
-                if self.is_not and not self.linked_test:
-                    return True, None
-                return False, None
-
-            matches = self._check_target(curr_c, grammar)
-            if self.is_not:
-                matches = not matches
-
-            if matches:
-                if self.linked_test:
-                    if self.linked_test.evaluate(window, curr_idx, grammar):
-                        return True, curr_idx
-                else:
-                    return True, curr_idx
-
-            curr_idx += step
-
-        if self.is_not and not self.linked_test:
-            return True, None
-
-        return False, None
-
-    def _check_target(self, cohort: Cohort, grammar: Any) -> bool:
-        return self._matches_cohort(self.target, cohort, grammar, self.is_careful)
-
-    def _matches_cohort(self, target: Any, cohort: Cohort, grammar: Any, careful: bool) -> bool:
-        if isinstance(target, SetDefinition):
-            if careful:
-                return target.matches_cohort_careful(cohort, grammar)
-            else:
-                return target.matches_cohort_normal(cohort, grammar)
-        elif isinstance(target, str):
-            if grammar and target in grammar.sets:
-                s = grammar.sets[target]
-                return s.matches_cohort_careful(cohort, grammar) if careful else s.matches_cohort_normal(cohort, grammar)
-            from pycg3.tag import TagPattern
-            pat = TagPattern(target)
-            if pat.is_any:
-                return True
-            readings = cohort.active_readings()
-            if not readings and not cohort.untouchable_tags:
-                return False
-            if careful:
-                if not readings:
-                    return False
-                for r in readings:
-                    if not any(pat.matches_tag(t) for t in r.all_tags()):
-                        return False
-                return True
-            else:
-                for ut in cohort.untouchable_tags:
-                    if pat.matches_tag(ut):
-                        return True
-                for r in readings:
-                    if any(pat.matches_tag(t) for t in r.all_tags()):
-                        return True
-                return False
-        return False
+    # -- entry point -------------------------------------------------------------------------
+    def evaluate(self, window: SingleWindow, cohort_idx: int, grammar: Any = None, reading: Any = None) -> bool:
+        """True if the test holds for the real cohort at window.cohorts[cohort_idx]."""
+        return _run_contextual_test(window, cohort_idx + 1, self)
 
     def __repr__(self) -> str:
-        neg = "NEGATE " if self.is_negate else ("NOT " if self.is_not else "")
-        scan = "*" if self.is_scan else ""
-        care = "C" if self.is_careful else ""
-        b = f" BARRIER {self.barrier}" if self.barrier else ""
-        cb = f" CBARRIER {self.cbarrier}" if self.cbarrier else ""
-        link = f" LINK {self.linked_test}" if self.linked_test else ""
-        return f"({neg}{self.offset}{scan}{care} {self.target}{b}{cb}{link})"
+        return "(%s%s%s)" % ("NEGATE " if self.negate else "", "NOT " if self.not_ else "", self.raw_pos)
+
+
+# -- set matching (doesSetMatchCohortNormal / Careful) -------------------------------------------
+def _test_linked(window: SingleWindow, index: int, ctx: _Ctx) -> bool:
+    """doesSetMatchCohort_testLinked"""
+    linked = ctx.test.linked_test if ctx.test is not None else None
+    if linked is None:
+        return True
+    if not ctx.did_test:
+        ctx.matched_tests = _run_contextual_test(window, index, linked)
+        ctx.did_test = True
+    return ctx.matched_tests
+
+
+def _helper(window, index, reading, target: SetDefinition, ctx: Optional[_Ctx]) -> bool:
+    """doesSetMatchCohort_helper"""
+    ret = False
+    if target.matches_reading(reading):
+        ret = True
+        if ctx is not None:
+            ctx.matched_target = True
+    if ret and ctx is not None and ctx.not_:
+        ret = not ret
+    if ret and ctx is not None and not ctx.in_barrier:
+        ret = _test_linked(window, index, ctx)
+    return ret
+
+
+def _wread(cohort):
+    """The reading that stands for the cohort itself: its word form and the static tags after it."""
+    if cohort._wread is None:
+        from pycg3.cohort import Reading
+        cohort._wread = Reading(baseform="", tags=list(cohort.untouchable_tags), parent_cohort=cohort)
+    return cohort._wread
+
+
+def _match_normal(window, index, target: SetDefinition, ctx: _Ctx) -> bool:
+    cohort = window.virtual(index)
+    ret = False
+    if cohort.untouchable_tags and not ctx.in_barrier:
+        ret = _helper(window, index, _wread(cohort), target, ctx)
+        if ret and ctx.did_test:
+            return ret
+    for reading in cohort.readings:
+        if reading.deleted:
+            continue
+        if _helper(window, index, reading, target, ctx):
+            ret = True
+        if ret and (ctx.test is None or ctx.test.linked_test is None or ctx.did_test):
+            return ret
+    if not ctx.matched_target and ctx.not_:
+        ret = _test_linked(window, index, ctx)
+    return ret
+
+
+def _match_careful(window, index, target: SetDefinition, ctx: _Ctx) -> bool:
+    cohort = window.virtual(index)
+    ret = False
+    for reading in cohort.readings:
+        if reading.deleted:
+            continue
+        ret = _helper(window, index, reading, target, ctx)
+        if not ret:
+            break
+    if not ctx.matched_target and ctx.not_:
+        ret = _test_linked(window, index, ctx)
+    return ret
+
+
+# -- one cohort (runSingleTest) ------------------------------------------------------------------
+def _single(window: SingleWindow, index: int, test: ContextualTest, rvs: int) -> Tuple[Optional[int], bool, int]:
+    """Returns (cohort index or None, retval, rvs)."""
+    if index < 0 or index > len(window.cohorts):
+        return None, False, rvs | TRV_BREAK
+    ctx = _Ctx(test=test, not_=test.not_, window=window, index=index)
+    if test.careful:
+        ret = _match_careful(window, index, test.target, ctx)
+        if not ctx.matched_target and test.scan_first:
+            ctx.did_test = True
+            _match_normal(window, index, test.target, ctx)
+    else:
+        ret = _match_normal(window, index, test.target, ctx)
+
+    if ctx.matched_target and test.scan_first:
+        rvs |= TRV_BREAK
+    elif not (test.scan_all or test.scan_first):
+        rvs |= TRV_BREAK | TRV_BREAK_DEFAULT
+    broken = bool(rvs & TRV_BREAK)
+
+    if test.barrier is not None:
+        bctx = _Ctx(test=None, not_=test.not_, in_barrier=True, window=window, index=index)
+        if _match_normal(window, index, test.barrier, bctx):
+            rvs |= TRV_BREAK | TRV_BARRIER
+            rvs &= ~TRV_BREAK_DEFAULT
+    if test.cbarrier is not None:
+        bctx = _Ctx(test=None, not_=test.not_, in_barrier=True, window=window, index=index)
+        if _match_careful(window, index, test.cbarrier, bctx):
+            rvs |= TRV_BREAK | TRV_BARRIER
+            rvs &= ~TRV_BREAK_DEFAULT
+    if ctx.matched_target and ret:
+        rvs |= TRV_BREAK
+    if not broken and (rvs & TRV_BARRIER) and test.self_ and test.no_barrier:
+        rvs &= ~(TRV_BREAK | TRV_BARRIER)
+    return index, ret, rvs
+
+
+# -- a whole test (runContextualTest) ---------------------------------------------------------------
+def _run_contextual_test(window: SingleWindow, position: int, test: ContextualTest) -> bool:
+    if test.ors:
+        found = any(_run_contextual_test(window, position, alt) for alt in test.ors)
+        return (not found) if test.negate else found
+    size = len(window.cohorts) + 1                     # begin cohort + real cohorts
+    retval = True
+    if test.absolute:
+        pos = size + test.offset if test.offset < 0 else test.offset
+    else:
+        pos = position + test.offset
+    cohort: Optional[int] = pos if 0 <= pos < size else None
+
+    if cohort is None:
+        retval = False
+    elif test.offset == 0 and test.is_scan:                      # 0*: both directions, alternating
+        left = right = True
+        lpos = rpos = pos
+        rvs = 0
+        if test.self_:
+            cohort, retval, rvs = _single(window, cohort, test, rvs)
+            if not retval and (rvs & TRV_BREAK_DEFAULT):
+                rvs &= ~(TRV_BREAK | TRV_BREAK_DEFAULT)
+        if (rvs & TRV_BREAK) and retval:
+            pass
+        else:
+            i = 1
+            done = False
+            while (left or right) and not done:
+                if left:
+                    rvs = 0
+                    cohort, retval, rvs = _single(window, lpos - i, test, rvs)
+                    if (rvs & TRV_BREAK) and retval:
+                        break
+                    elif rvs & TRV_BREAK:
+                        left = False
+                        if test.not_:
+                            right = False
+                    elif lpos - i == 0:
+                        left = False
+                if right:
+                    rvs = 0
+                    cohort, retval, rvs = _single(window, rpos + i, test, rvs)
+                    if (rvs & TRV_BREAK) and retval:
+                        break
+                    elif rvs & TRV_BREAK:
+                        right = False
+                        if test.not_:
+                            left = False
+                    elif rpos + i == size - 1:
+                        right = False
+                i += 1
+    else:                                                        # one direction (or just the one cohort)
+        step = -1 if test.offset < 0 else (1 if test.offset > 0 else 0)
+        idx = cohort
+        seen = 0
+        rvs = 0
+        nc: Optional[int] = cohort
+        if test.self_:
+            seen += 1
+            nc, retval, rvs = _single(window, position, test, rvs)
+            if not retval and (rvs & TRV_BREAK_DEFAULT):
+                rvs &= ~(TRV_BREAK | TRV_BREAK_DEFAULT)
+        if not (rvs & TRV_BREAK):
+            while idx is not None and 0 <= idx < size:
+                seen += 1
+                nc, retval, rvs = _single(window, idx, test, rvs)
+                if test.all_ and not retval:
+                    nc = None
+                    break
+                if test.none_ and retval:
+                    nc = None
+                    break
+                if rvs & TRV_BREAK:
+                    break
+                idx = idx + step if step else None
+        if seen == 0:
+            retval = False
+        if not retval and test.none_:
+            retval = True
+            nc = cohort
+        cohort = nc
+
+    if cohort is None:
+        retval = False
+    if cohort is None and test.not_ and test.linked_test is None:
+        retval = not retval
+    if test.negate:
+        retval = not retval
+    return retval

@@ -1,305 +1,253 @@
 """Rule representation and execution for VISL CG-3."""
 
-from typing import List, Optional, Any, Set, Tuple
+from typing import List, Optional, Any, Tuple
 from pycg3.cohort import Cohort, Reading, SingleWindow
 from pycg3.context import ContextualTest
-from pycg3.set_def import SetDefinition
+from pycg3.set_def import SetDefinition, CompositeTag, _is_literal
 
 
 class Rule:
-    """Represents a single CG-3 rule."""
+    """A single CG-3 rule: TYPE[:name] [flags] [action] [TARGET] set [IF test...]."""
 
     __slots__ = (
-        'type',
-        'name',
-        'line_number',
-        'target',
-        'target_modifiers',
-        'context_tests',
-        'action_tags',
-        'subst_old_tag',
-        'wordform_filter',
-        'direction',  # 'BEFORE' or 'AFTER' for ADDCOHORT / MOVE
-        'sub_reading_target',
-        'is_careful'
+        'type', 'name', 'label', 'line_number', 'target', 'target_modifiers', 'context_tests',
+        'action_tags', 'subst_old', 'subst_old_tag', 'wordform_filter', 'direction', 'flags', 'is_careful',
+        'uses_unify',
     )
 
-    def __init__(
-        self,
-        rule_type: str,
-        target: Any,
-        name: str = "",
-        line_number: int = 0,
-        context_tests: Optional[List[ContextualTest]] = None,
-        action_tags: Optional[List[str]] = None,
-        subst_old_tag: Optional[str] = None,
-        target_modifiers: str = "",
-        wordform_filter: Optional[str] = None
-    ):
+    def __init__(self, rule_type: str, target: Any, name: str = "", line_number: int = 0,
+                 context_tests: Optional[List[ContextualTest]] = None, action_tags: Optional[List[str]] = None,
+                 subst_old: Optional[SetDefinition] = None, target_modifiers: str = "",
+                 wordform_filter: Optional[str] = None, subst_old_tag: Optional[str] = None):
         self.type = rule_type.upper()
-        self.name = name if name else str(line_number)
+        self.name = name
+        # the trace label vislcg3 -t prints after a changed reading: TYPE:line[:name]
+        self.label = "%s:%d%s" % (self.type, line_number, (":" + name) if name else "")
         self.line_number = line_number
         self.target = target
         self.target_modifiers = target_modifiers
-        self.context_tests: List[ContextualTest] = list(context_tests) if context_tests is not None else []
-        self.action_tags: List[str] = list(action_tags) if action_tags is not None else []
+        self.context_tests = list(context_tests or [])
+        self.action_tags = list(action_tags or [])
+        self.subst_old = subst_old
         self.subst_old_tag = subst_old_tag
         self.wordform_filter = wordform_filter
         self.direction = "AFTER"
-        self.sub_reading_target = None
-        self.is_careful = ('c' in target_modifiers.lower()) or (self.type == 'SELECT' and 'c' in target_modifiers.lower())
+        self.flags: set = set()
+        self.is_careful = 'c' in target_modifiers.lower()
+        self.uses_unify = False
 
+    @property
+    def iterates(self) -> bool:
+        """Does a change by this rule send its section round again? As in vislcg3, only SELECT, REMOVE, IFF,
+        REMCOHORT, MOVE and SWITCH do, unless the rule says ITERATE / NOITERATE."""
+        if 'ITERATE' in self.flags:
+            return True
+        if 'NOITERATE' in self.flags:
+            return False
+        return self.type in ('SELECT', 'REMOVE', 'IFF', 'DELIMIT', 'REMCOHORT', 'MOVE', 'SWITCH')
+
+    # -- application ------------------------------------------------------------------------
     def apply_to_window(self, window: SingleWindow, grammar: Any) -> bool:
-        """Apply rule across the window. Returns True if any change was made."""
+        """Apply the rule to every cohort of the window once. True if anything changed."""
         changed = False
-        cohorts = window.cohorts
-        num_cohorts = len(cohorts)
-
-        # Iterate through cohorts
-        # For cohort manipulation like REMCOHORT / ADDCOHORT / MOVE, we handle index carefully
-        c_idx = 0
-        while c_idx < len(window.cohorts):
-            cohort = window.cohorts[c_idx]
-
-            # Check wordform filter if rule has one: e.g. "<word>" SELECT ...
+        i = 0
+        while i < len(window.cohorts):
+            cohort = window.cohorts[i]
             if self.wordform_filter and cohort.wordform != self.wordform_filter:
-                c_idx += 1
+                i += 1
                 continue
-
-            # Evaluate context tests
-            tests_pass = True
-            for test in self.context_tests:
-                if not test.evaluate(window, c_idx, grammar):
-                    tests_pass = False
-                    break
-
-            if self.type == 'IFF':
-                # IFF acts as SELECT if tests pass, REMOVE if tests fail
-                if tests_pass:
-                    if self._apply_select(cohort, grammar):
-                        changed = True
-                else:
-                    if self._apply_remove(cohort, grammar):
-                        changed = True
-                c_idx += 1
+            if self.uses_unify:
+                targets, tests_ok = self._unify_targets(window, i, cohort, grammar)
+                if not targets:
+                    i += 1
+                    continue
+            else:
+                targets = [r for r in cohort.readings if not r.deleted and self._target_matches(r)]
+                tests_ok = None
+            if not targets and self.type not in ('REMCOHORT', 'ADDCOHORT', 'SETVARIABLE', 'REMVARIABLE'):
+                i += 1
                 continue
-
-            if not tests_pass:
-                c_idx += 1
+            if tests_ok is None:
+                tests_ok = all(t.evaluate(window, i, grammar) for t in self.context_tests)
+            if not tests_ok:
+                if self.type == 'IFF':      # IFF: SELECT where the contexts hold, REMOVE where they do not
+                    changed = self._remove(cohort, targets) or changed
+                i += 1
                 continue
-
-            # Tests passed! Apply rule action
-            rule_changed, index_delta = self._apply_action(window, c_idx, grammar)
-            if rule_changed:
-                changed = True
-            c_idx += (1 + index_delta)
-
+            did, delta = self._act(window, i, cohort, targets, grammar)
+            if did and self.type in ('SUBSTITUTE', 'REPLACE', 'ADD', 'MAP', 'UNMAP', 'COPY', 'APPEND'):
+                cohort.dedupe_readings(with_trace=getattr(grammar, 'trace_mode', False))
+            changed = changed or did
+            i += 1 + delta
         return changed
 
-    def _apply_action(self, window: SingleWindow, c_idx: int, grammar: Any) -> Tuple[bool, int]:
-        cohort = window.cohorts[c_idx]
+    def _unify_targets(self, window, i, cohort, grammar):
+        """With $$Set / &&Set in the rule each target reading is tried on its own: the contexts have to agree
+        with what that reading matched. Returns (readings that pass, True) or ([], None)."""
+        from pycg3 import set_def
+        good = []
+        try:
+            for r in cohort.readings:
+                if r.deleted:
+                    continue
+                set_def.set_unif({})
+                if self._target_matches(r) and all(t.evaluate(window, i, grammar) for t in self.context_tests):
+                    good.append(r)
+        finally:
+            set_def.set_unif(None)
+        return good, True
 
-        if self.type == 'SELECT':
-            return self._apply_select(cohort, grammar), 0
+    def _target_matches(self, reading: Reading) -> bool:
+        if isinstance(self.target, SetDefinition):
+            res = self.target.matches_reading(reading)
+        else:
+            res = False
+        return (not res) if '!' in self.target_modifiers else res
 
-        elif self.type == 'REMOVE':
-            return self._apply_remove(cohort, grammar), 0
-
-        elif self.type == 'ADD' or self.type == 'MAP':
-            return self._apply_add(cohort, grammar), 0
-
-        elif self.type == 'UNMAP':
-            return self._apply_unmap(cohort, grammar), 0
-
-        elif self.type == 'REPLACE':
-            return self._apply_replace(cohort, grammar), 0
-
-        elif self.type == 'SUBSTITUTE':
-            return self._apply_substitute(cohort, grammar), 0
-
-        elif self.type == 'APPEND':
-            return self._apply_append(cohort, grammar), 0
-
-        elif self.type == 'COPY':
-            return self._apply_copy(cohort, grammar), 0
-
-        elif self.type == 'REMCOHORT':
-            window.cohorts.pop(c_idx)
-            return True, -1
-
-        elif self.type == 'ADDCOHORT':
-            return self._apply_addcohort(window, c_idx, grammar)
-
-        elif self.type == 'SETVARIABLE':
-            for tag in self.action_tags:
-                if '=' in tag:
-                    k, v = tag.split('=', 1)
-                    window.variables[k] = v
-                else:
-                    window.variables[tag] = '1'
+    def _act(self, window, i, cohort, targets, grammar) -> Tuple[bool, int]:
+        t = self.type
+        mp = grammar.mapping_prefix if grammar else '@'
+        if t == 'SELECT':
+            return self._select(cohort, targets), 0
+        if t == 'REMOVE':
+            return self._remove(cohort, targets), 0
+        if t == 'IFF':
+            return self._select(cohort, targets), 0
+        if t in ('ADD', 'MAP'):
+            return self._add(targets, mp, t == 'MAP'), 0
+        if t == 'UNMAP':
+            did = False
+            for r in targets:
+                for tag in list(r.mapping_tags):
+                    r.remove_tag(tag)
+                    did = True
+                if did:
+                    r.trace.append(self.label)
+            return did, 0
+        if t == 'REPLACE':
+            targets = [r for r in targets if not r.mapped]
+            for r in targets:
+                r.tags = list(self.action_tags)
+                r._tag_set = set(r.tags)
+                r._match_cache = None
+                r.mapping_tags = {x for x in r.tags if x.startswith(mp)}
+                r.changed = True
+                r.trace.append(self.label)
+            return bool(targets), 0
+        if t == 'SUBSTITUTE':
+            return self._substitute(targets, mp), 0
+        if t == 'APPEND' and self.action_tags:
+            nr = Reading(baseform=self.action_tags[0], tags=self.action_tags[1:], parent_cohort=cohort)
+            nr.changed = True
+            nr.trace.append(self.label)
+            cohort.append_reading(nr)
             return True, 0
-
-        elif self.type == 'REMVARIABLE':
+        if t == 'COPY':
+            for r in targets:
+                nr = r.clone(parent_cohort=cohort)
+                for tag in self.action_tags:
+                    nr.add_tag(tag, mapping_prefix=mp)
+                nr.trace.append(self.label)
+                cohort.append_reading(nr)
+            return bool(targets), 0
+        if t == 'REMCOHORT':
+            window.cohorts.pop(i)
+            return True, -1
+        if t == 'ADDCOHORT':
+            return self._addcohort(window, i)
+        if t == 'SETVARIABLE':
+            for tag in self.action_tags:
+                k, _, v = tag.partition('=')
+                window.variables[k] = v or '1'
+            return True, 0
+        if t == 'REMVARIABLE':
             for tag in self.action_tags:
                 window.variables.pop(tag, None)
             return True, 0
-
         return False, 0
 
-    def _matches_reading(self, reading: Reading, grammar: Any) -> bool:
-        if isinstance(self.target, SetDefinition):
-            res = self.target.matches_reading(reading, grammar)
-        elif isinstance(self.target, str):
-            if grammar and self.target in grammar.sets:
-                res = grammar.sets[self.target].matches_reading(reading, grammar)
-            else:
-                from pycg3.tag import TagPattern
-                pat = TagPattern(self.target)
-                res = any(pat.matches_tag(t) for t in reading.all_tags())
-        else:
-            res = False
-        return (not res) if ('!' in self.target_modifiers) else res
-
-    def _apply_select(self, cohort: Cohort, grammar: Any) -> bool:
-        active = cohort.active_readings()
-        if len(active) <= 1:
+    def _select(self, cohort: Cohort, targets: List[Reading]) -> bool:
+        active = [r for r in cohort.readings if not r.deleted]
+        if len(active) <= 1 or not targets or len(targets) == len(active):
             return False
-
-        matching = [r for r in active if self._matches_reading(r, grammar)]
-        if not matching:
-            return False
-
-        # If careful (c) and matching would delete everything, don't apply
-        if self.is_careful and len(matching) == 0:
-            return False
-
-        # If matching is identical to active, no change needed
-        if len(matching) == len(active):
-            return False
-
+        keep = set(map(id, targets))
         for r in active:
-            if r not in matching:
-                cohort.remove_reading(r, rule_name=self.name)
-        for r in matching:
+            if id(r) not in keep:
+                cohort.remove_reading(r, rule_name=self.label)
+        for r in targets:
             r.changed = True
-            r.trace.append(self.name)
+            r.trace.append(self.label)
         return True
 
-    def _apply_remove(self, cohort: Cohort, grammar: Any) -> bool:
-        active = cohort.active_readings()
-        if not active:
-            return False
-
-        matching = [r for r in active if self._matches_reading(r, grammar)]
-        if not matching:
-            return False
-
-        # If careful (c) or default CG-3 protection: do not remove ALL readings
-        if (self.is_careful or True) and len(matching) >= len(active):
-            # Cannot delete all readings in cohort
-            return False
-
-        for r in matching:
-            cohort.remove_reading(r, rule_name=self.name)
+    def _remove(self, cohort: Cohort, targets: List[Reading]) -> bool:
+        active = [r for r in cohort.readings if not r.deleted]
+        if len(active) <= 1 or len(targets) >= len(active):
+            return False                       # a cohort never loses its last reading
+        for r in targets:
+            cohort.remove_reading(r, rule_name=self.label)
         return True
 
-    def _apply_add(self, cohort: Cohort, grammar: Any) -> bool:
+    def _add(self, targets: List[Reading], mp: str, is_map: bool) -> bool:
         changed = False
-        for r in cohort.active_readings():
-            if self._matches_reading(r, grammar):
-                for tag in self.action_tags:
-                    if not r.has_tag(tag):
-                        r.add_tag(tag, mapping_prefix=grammar.mapping_prefix if grammar else '@')
-                        changed = True
-                if changed:
-                    r.trace.append(self.name)
-        return changed
-
-    def _apply_unmap(self, cohort: Cohort, grammar: Any) -> bool:
-        changed = False
-        mp = grammar.mapping_prefix if grammar else '@'
-        for r in cohort.active_readings():
-            if self._matches_reading(r, grammar):
-                maps = list(r.mapping_tags)
-                for tag in maps:
-                    r.remove_tag(tag)
-                    changed = True
-                if changed:
-                    r.trace.append(self.name)
-        return changed
-
-    def _apply_replace(self, cohort: Cohort, grammar: Any) -> bool:
-        changed = False
-        mp = grammar.mapping_prefix if grammar else '@'
-        for r in cohort.active_readings():
-            if self._matches_reading(r, grammar):
-                r.tags = list(self.action_tags)
-                r._tag_set = set(r.tags)
-                r.mapping_tags = {t for t in r.tags if t.startswith(mp)}
-                r.changed = True
-                r.trace.append(self.name)
+        for r in targets:
+            if r.mapped:                 # as in vislcg3, MAP, ADD and REPLACE leave a mapped reading alone
+                continue
+            did = False
+            for tag in self.action_tags:
+                if not r.has_tag(tag):
+                    r.add_tag(tag, mapping_prefix=mp)
+                    did = True
+            if did:
+                if is_map:
+                    r.mapped = True
+                r.trace.append(self.label)
                 changed = True
         return changed
 
-    def _apply_substitute(self, cohort: Cohort, grammar: Any) -> bool:
-        if not self.subst_old_tag:
+    def _substitute(self, targets: List[Reading], mp: str) -> bool:
+        if self.subst_old is None:
             return False
+        new = [x for x in self.action_tags if x != '*']
         changed = False
-        mp = grammar.mapping_prefix if grammar else '@'
-        for r in cohort.active_readings():
-            if self._matches_reading(r, grammar) and r.has_tag(self.subst_old_tag):
-                r.replace_tag(self.subst_old_tag, self.action_tags, mapping_prefix=mp)
-                r.trace.append(self.name)
-                changed = True
+        for r in targets:
+            hits = [k for k, tag in enumerate(r.tags) if self._old_matches(tag)]
+            if not hits:
+                continue
+            first = hits[0]
+            out = []
+            for k, tag in enumerate(r.tags):
+                if k == first:
+                    out.extend(new)
+                if k not in hits:
+                    out.append(tag)
+            r.tags = out
+            r._tag_set = set(out)
+            r._match_cache = None
+            r.mapping_tags = {x for x in out if x.startswith(mp)}
+            r.changed = True
+            r.trace.append(self.label)
+            changed = True
         return changed
 
-    def _apply_append(self, cohort: Cohort, grammar: Any) -> bool:
-        # action_tags contains [baseform, tag1, tag2...]
-        if not self.action_tags:
-            return False
-        base = self.action_tags[0]
-        tags = self.action_tags[1:]
-        nr = Reading(baseform=base, tags=tags, parent_cohort=cohort)
-        nr.changed = True
-        nr.trace.append(self.name)
-        cohort.append_reading(nr)
-        return True
+    def _old_matches(self, tag: str) -> bool:
+        probe = Reading(baseform="", tags=[tag])
+        return self.subst_old.matches_reading(probe)
 
-    def _apply_copy(self, cohort: Cohort, grammar: Any) -> bool:
-        changed = False
-        mp = grammar.mapping_prefix if grammar else '@'
-        for r in list(cohort.active_readings()):
-            if self._matches_reading(r, grammar):
-                nr = r.clone(parent_cohort=cohort)
-                for t in self.action_tags:
-                    nr.add_tag(t, mapping_prefix=mp)
-                nr.changed = True
-                nr.trace.append(self.name)
-                cohort.append_reading(nr)
-                changed = True
-        return changed
-
-    def _apply_addcohort(self, window: SingleWindow, c_idx: int, grammar: Any) -> Tuple[bool, int]:
-        # action_tags: ["<word>", "base", tag1, ...]
+    def _addcohort(self, window: SingleWindow, i: int) -> Tuple[bool, int]:
         if not self.action_tags:
             return False, 0
         word = self.action_tags[0]
         base = self.action_tags[1] if len(self.action_tags) > 1 else '""'
-        tags = self.action_tags[2:] if len(self.action_tags) > 2 else []
-
         new_c = Cohort(wordform=word, parent_window=window)
-        r = Reading(baseform=base, tags=tags, parent_cohort=new_c)
+        r = Reading(baseform=base, tags=self.action_tags[2:], parent_cohort=new_c)
         r.changed = True
-        r.trace.append(self.name)
+        r.trace.append(self.label)
         new_c.append_reading(r)
-
         if self.direction == "BEFORE":
-            window.cohorts.insert(c_idx, new_c)
+            window.cohorts.insert(i, new_c)
             return True, 1
-        else:
-            window.cohorts.insert(c_idx + 1, new_c)
-            return True, 0
+        window.cohorts.insert(i + 1, new_c)
+        return True, 0
 
     def __repr__(self) -> str:
-        ctx = " ".join(str(c) for c in self.context_tests)
-        return f"Rule({self.name}: {self.type} {self.target} {ctx})"
+        return f"Rule({self.label} {self.target} {' '.join(map(str, self.context_tests))})"

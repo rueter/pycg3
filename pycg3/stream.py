@@ -73,6 +73,11 @@ def split_all_mappings(cohort: Cohort, mapping_prefix: str = '@'):
                 new_readings.append(nr)
         else:
             new_readings.append(r)
+    for r in new_readings:
+        marks = {t for t in r.tags if t.startswith(mapping_prefix)}
+        if marks:                       # as in vislcg3 a reading that arrives with a mapping tag counts as mapped
+            r.mapping_tags = marks
+            r.mapped = True
     cohort.readings = new_readings
 
 
@@ -95,6 +100,7 @@ def parse_stream(
 
     def finish_cohort(c: Cohort):
         split_all_mappings(c, mapping_prefix=mapping_prefix)
+        c.dedupe_readings()
 
     def finish_window():
         nonlocal current_window, current_cohort, reading_stack
