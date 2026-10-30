@@ -9,8 +9,7 @@ description = "Pure Python VISL CG-3 (Constraint Grammar 3): hfst analyses in, d
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "GrammarSoft ApS / VISL CG-3 Contributors" },
-    { name = "pycg3 contributors" }
+    { name = "Jack Rueter" }
 ]
 keywords = ["nlp", "linguistics", "constraint-grammar", "cg3", "vislcg3"]
 classifiers = [
