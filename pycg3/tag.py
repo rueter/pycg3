@@ -4,9 +4,59 @@ import re
 from functools import lru_cache
 from typing import Optional, Union, List
 
+_PROP_RE = re.compile(r'\\{1,2}([pP])\{(\^?)([A-Za-z_]+)\}')
+
+
+@lru_cache(maxsize=64)
+def _category_ranges(category: str) -> str:
+    """The code points of a Unicode general category ('Lu') or a group of them ('L') as the inside of a [...] class."""
+    import sys
+    import unicodedata
+    ranges, start, prev = [], None, None
+    for cp in range(sys.maxunicode + 1):
+        if unicodedata.category(chr(cp)).startswith(category):
+            if start is None:
+                start = cp
+            prev = cp
+        elif start is not None:
+            ranges.append((start, prev))
+            start = None
+    if start is not None:
+        ranges.append((start, prev))
+
+    def esc(cp):
+        return '\\U%08x' % cp
+    return ''.join(esc(a) if a == b else '%s-%s' % (esc(a), esc(b)) for a, b in ranges)
+
+
+def _expand_unicode_properties(pattern: str) -> str:
+    """ICU regexes (what vislcg3 uses) have \\p{Lu}, \\p{L}, \\P{N} ...; Python's re does not. A grammar file writes
+    them with a doubled backslash, which vislcg3 reads as one. Only the general categories are known here."""
+    if '\\p{' not in pattern and '\\P{' not in pattern:
+        return pattern
+    out, last, depth_open = [], 0, False
+    for m in _PROP_RE.finditer(pattern):
+        before = pattern[last:m.start()]
+        out.append(before)
+        # inside a [...] class the ranges go in as they are, outside they get a class of their own
+        inside = before.count('[') - before.count('\\[') > before.count(']') - before.count('\\]') if not depth_open else True
+        depth_open = inside
+        negated = (m.group(1) == 'P') != bool(m.group(2))
+        body = _category_ranges(m.group(3))
+        if inside:
+            out.append(body if not negated else '')
+        else:
+            out.append('[%s%s]' % ('^' if negated else '', body))
+        last = m.end()
+        if inside and ']' in pattern[last:last + 1]:
+            depth_open = False
+    out.append(pattern[last:])
+    return ''.join(out)
+
+
 @lru_cache(maxsize=4096)
 def get_compiled_regex(pattern: str, flags: int = 0) -> re.Pattern:
-    return re.compile(pattern, flags)
+    return re.compile(_expand_unicode_properties(pattern), flags)
 
 
 def is_wordform(tag: str) -> bool:
@@ -41,7 +91,8 @@ class TagPattern:
         'is_baseform',
         'literal',
         '_regex',
-        'last_match'
+        'last_match',
+        'regex_kind'
     )
 
     def __init__(self, raw: str):
@@ -57,6 +108,7 @@ class TagPattern:
         self.literal = pattern_str
         self._regex: Optional[re.Pattern] = None
         self.last_match: Optional[re.Match] = None
+        self.regex_kind: Optional[str] = None     # "<...>"r is a word form regex, "..."r a base form regex: each is only tried on its own kind of tag
 
         # Check for quoted string with trailing flags: e.g. "pattern"r, "pattern"ri, "pattern"i
         if pattern_str.startswith('"') and '"' in pattern_str[1:]:
@@ -67,6 +119,10 @@ class TagPattern:
                 self.is_regex = True
                 if 'i' in flags:
                     self.is_case_insensitive = True
+                if inner.startswith('<') and inner.endswith('>') and len(inner) > 1:
+                    self.regex_kind = 'wordform'
+                else:
+                    self.regex_kind = 'baseform'
                 self._init_regex(inner, flags)
             elif 'i' in flags:
                 self.is_case_insensitive = True
@@ -107,6 +163,18 @@ class TagPattern:
             return True
 
         if self.is_regex and self._regex is not None:
+            if self.regex_kind == 'wordform' and not is_wordform(tag):
+                return False
+            if self.regex_kind == 'baseform' and not is_baseform(tag):
+                return False
+            if self.regex_kind is not None:
+                # vislcg3 matches "..."r / "<...>"r against the whole of the base form / word form (quotes left off):
+                # "a"r does not match "banana", "b.*"r does. /.../r matches anywhere in the tag.
+                m = self._regex.fullmatch(tag[1:-1])
+                if m:
+                    self.last_match = m
+                    return True
+                return False
             # Match directly or strip quotes if baseform
             m = self._regex.search(tag)
             if not m and (tag.startswith('"') and tag.endswith('"')):

@@ -122,6 +122,40 @@ class TestRules(unittest.TestCase):
         res = Disambiguator(grammar).run_text(text)
         self.assertEqual(res.strip().split('\n'), ['"<w>"', '\t"w" B', '\t"w" C'])
 
+    # -- regex tags, as vislcg3 reads them -------------------------------------------------------------------
+    def _hits(self, grammar_text, input_text):
+        res = Disambiguator(GrammarParser().parse(grammar_text)).run_text(input_text)
+        return [ln for ln in res.split('\n') if 'HIT' in ln]
+
+    def test_quoted_regex_matches_the_whole_form(self):
+        text = '"<banana>"\n\t"banana" N <W:0.0>\n'
+        def hit(tag):
+            g = 'DELIMITERS = "<$.>" ;\nSECTION\nADD (HIT) TARGET (%s) ;\n' % tag
+            return bool(self._hits(g, text))
+        self.assertFalse(hit('"ban"r'))             # base form regex: the whole base form, not a part of it
+        self.assertTrue(hit('"ban.*"r'))
+        self.assertFalse(hit('"<ban>"r'))           # word form regex: the whole word form
+        self.assertTrue(hit('"<.*nan.*>"r'))
+
+    def test_wordform_regex_does_not_look_at_other_tags(self):
+        # <W:0.0> begins with a capital, but "<\\p{Lu}.*>"r is a word form regex: only the word form is tried
+        g = 'DELIMITERS = "<$.>" ;\nLIST UP = "<\\\\p{Lu}(.*)>"r ;\nSECTION\nADD (HIT) TARGET UP ;\n'
+        text = '"<Turku>"\n\t"Turku" N <W:0.0>\n"<talo>"\n\t"talo" N <W:0.0>\n'
+        res = Disambiguator(GrammarParser().parse(g)).run_text(text).split('\n')
+        self.assertIn('\t"Turku" N <W:0.0> HIT', res)
+        self.assertIn('\t"talo" N <W:0.0>', res)
+
+    def test_slash_regex_looks_anywhere_in_the_tag(self):
+        g = 'DELIMITERS = "<$.>" ;\nSECTION\nADD (HIT) TARGET (/Fo/r) ;\n'
+        self.assertTrue(self._hits(g, '"<a>"\n\t"a" N Foo\n'))
+
+    def test_addcohort_needs_its_target(self):
+        g = 'DELIMITERS = "<$.>" ;\nLIST T = T ;\nSECTION\nADDCOHORT ("<x>" "x" N) AFTER T ;\n'
+        res = Disambiguator(GrammarParser().parse(g)).run_text('"<a>"\n\t"a" U\n"<b>"\n\t"b" U\n')
+        self.assertNotIn('"<x>"', res)              # no cohort has T: nothing is added (and nothing runs away)
+        res = Disambiguator(GrammarParser().parse(g.replace('AFTER T', 'AFTER T (NEGATE 1 ("x"))'))).run_text('"<a>"\n\t"a" T\n"<b>"\n\t"b" U\n')
+        self.assertEqual(res.count('"<x>"'), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

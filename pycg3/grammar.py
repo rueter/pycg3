@@ -24,8 +24,9 @@ RULE_FLAGS = {
     'NEAREST', 'ALLOWLOOP', 'DELAYED', 'IMMEDIATE', 'IGNORED', 'RESETX', 'REMEMBERX', 'ALLOWCROSS',
     'ORDERED', 'BEFORE', 'AFTER',
 }
-# + and - work on readings (a reading in both / in the first and not the second); \ ∆ ^ ∩ work on the tags of the lists
-SET_OPS = {'+': 'and', '-': 'minus', '\\': 'tdiff', '^': 'tsym', '∆': 'tsym', '∩': 'tand'}
+# + and - (and ^) work on readings (a reading in both / in the first and not the second); \ ∆ ∩ work on the tags of the lists
+# '^' is the fail-fast difference: in vislcg3 (1.7) it matches exactly what '-' matches, on lists and on sets alike
+SET_OPS = {'+': 'and', '-': 'minus', '^': 'minus', '\\': 'tdiff', '∆': 'tsym', '∩': 'tand'}
 # digits are optional: (* X) and (-* X) are both 0*, the scan in both directions
 POSITION_RE = re.compile(r'^(@?)(\**)(-?)(\d*)(\**)([A-Za-z]*)$')
 
@@ -280,7 +281,7 @@ class GrammarParser:
             if op in ('tdiff', 'tsym', 'tand') and out:
                 a, b = listed(out[-1][1]), listed(operand)
                 if a is None or b is None:
-                    raise GrammarError("\\, ∆, ^ and ∩ need plain lists on both sides (line %d)" % line)
+                    raise GrammarError("\\, ∆ and ∩ need plain lists on both sides (line %d)" % line)
                 ka, kb = {key(i) for i in a.items}, {key(i) for i in b.items}
                 if op == 'tdiff':
                     items = [i for i in a.items if key(i) not in kb]

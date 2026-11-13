@@ -157,7 +157,7 @@ On the Erzya and Moksha `disambiguator.cg3` grammars of GiellaLT (lang-myv: 8 73
   (and REMCOHORT, MOVE, SWITCH) send a section round again, `ITERATE` / `NOITERATE` override that.
 - Readings with the same base form and tag set are merged on input and after a rule changes one (with `-t`
   readings with different traces stay apart); the last reading of a cohort is never removed.
-- Sets: `LIST`, `SET` with `OR`, `+`, `-` (on readings) and `\`, `∆`, `^`, `∩` (on the tags of lists), `$$Set` / `&&Set`
+- Sets: `LIST`, `SET` with `OR`, `+`, `-` (on readings) and `^` (the same as `-`), `\`, `∆`, `∩` (on the tags of lists), `$$Set` / `&&Set`
   unification, static tags after the word form, `SETS` headings, CG-2 style rules with the contexts straight
   after the target.
 

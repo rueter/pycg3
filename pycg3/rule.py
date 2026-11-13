@@ -64,7 +64,7 @@ class Rule:
             else:
                 targets = [r for r in cohort.readings if not r.deleted and self._target_matches(r)]
                 tests_ok = None
-            if not targets and self.type not in ('REMCOHORT', 'ADDCOHORT', 'SETVARIABLE', 'REMVARIABLE'):
+            if not targets and self.type not in ('SETVARIABLE', 'REMVARIABLE'):     # ADDCOHORT / REMCOHORT need a target too
                 i += 1
                 continue
             if tests_ok is None:
