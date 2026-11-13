@@ -32,6 +32,17 @@ class TestStream(unittest.TestCase):
         self.assertEqual(c0.readings[0].baseform, '"word"')
         self.assertEqual(c0.readings[0].tags, ['N', 'SG', '@SUBJ>'])
 
+    def test_wordform_and_baseform_with_special_characters(self):
+        """'>' and '"' as word forms ("<>>", "<">"), and '"' as a base form, as hfst-tokenise writes them."""
+        text = '"<a>"\n\t"a" N\n"<>>"\n\t">" PUNCT RIGHT\n"<">"\n\t""" PUNCT\n"<.>"\n\t"." CLB\n'
+        win = list(parse_stream(io.StringIO(text)))[0]
+        self.assertEqual([c.wordform for c in win.cohorts], ['"<a>"', '"<>>"', '"<">"', '"<.>"'])
+        self.assertEqual([len(c.readings) for c in win.cohorts], [1, 1, 1, 1])
+        self.assertEqual(win.cohorts[1].readings[0].baseform, '">"')
+        self.assertEqual(win.cohorts[2].readings[0].baseform, '"""')
+        self.assertEqual(win.cohorts[2].readings[0].tags, ['PUNCT'])
+        self.assertIn('\t""" PUNCT', win.to_text())
+
     def test_sub_readings(self):
         text = '''"<compound>"
 \t"comp" N

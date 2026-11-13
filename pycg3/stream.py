@@ -7,8 +7,10 @@ from pycg3.cohort import Cohort, Reading, SingleWindow
 from pycg3.set_def import SetDefinition
 
 
-COHORT_RE = re.compile(r'^\s*\"<([^>]+)>\"(.*)$')
-READING_RE = re.compile(r'^(\s+)(;?\s*)\"([^\"]*)\"(.*)$')
+# A word form may itself contain '>' or '"' ("<>>", "<">"), and so may a base form (""" for the quote mark):
+# the form ends at the first '>"' (resp. the base form at the first '"') that is followed by white space or the end of the line.
+COHORT_RE = re.compile(r'^\s*\"<(.+?)>\"(?=\s|$)(.*)$')
+READING_RE = re.compile(r'^(\s+)(;?\s*)\"(.*?)\"(?=\s|$)(.*)$')
 STREAM_CMD_RE = re.compile(r'^<STREAMCMD:([A-Z]+)(?::([^>]*))?>$')
 
 
@@ -66,6 +68,7 @@ def split_all_mappings(cohort: Cohort, mapping_prefix: str = '@'):
             base_tags = [t for t in r.tags if not t.startswith(mapping_prefix)]
             for mt in mapping_tags:
                 nr = Reading(baseform=r.baseform, tags=base_tags + [mt], parent_cohort=cohort)
+                nr.number = r.number
                 nr.deleted = r.deleted
                 nr.changed = r.changed
                 nr.trace = list(r.trace)

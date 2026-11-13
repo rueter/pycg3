@@ -134,7 +134,7 @@ class Cg:
         for window in engines[-1].run_stream(io.StringIO(text)):
             for cohort in window.cohorts:
                 form = cohort.wordform[2:-2]
-                out.append((form, [_reading_to_word(form, r, self.trace) for r in cohort.readings if not r.deleted]))
+                out.append((form, [_reading_to_word(form, r, self.trace) for r in cohort.ordered_readings() if not r.deleted]))
         return out
 
     def to_morphologies(self, result: Iterable[Tuple[str, List[CgWord]]]) -> List[List[List[Any]]]:

@@ -21,7 +21,8 @@ class Reading:
         'parent_id',
         'rel_name',
         '_match_cache',
-        'mapped'
+        'mapped',
+        'number'
     )
 
     def __init__(self, baseform: str = "", tags: Optional[List[str]] = None, parent_cohort: Optional['Cohort'] = None):
@@ -39,6 +40,7 @@ class Reading:
         self.rel_name: Optional[str] = None
         self._match_cache: Optional[frozenset] = None
         self.mapped = False
+        self.number = -1            # place in the output: vislcg3 prints readings by number, whatever order it keeps them in
 
         # Check for dependency / relation tags
         for t in self.tags:
@@ -146,6 +148,7 @@ class Reading:
         nr.parent_id = self.parent_id
         nr.rel_name = self.rel_name
         nr.mapped = self.mapped
+        nr.number = self.number
         nr.sub_readings = [s.clone(parent_cohort=parent_cohort) for s in self.sub_readings]
         return nr
 
@@ -167,7 +170,8 @@ class Cohort:
         'global_number',
         'parent_window',
         'is_end',
-        '_wread'
+        '_wread',
+        '_next_number'
     )
 
     def __init__(
@@ -189,12 +193,20 @@ class Cohort:
         self.global_number = global_number
         self.parent_window: Optional['SingleWindow'] = parent_window
         self._wread = None
+        self._next_number = 0
         self.is_end = False          # the last cohort of a window: its readings answer to the tag <<<
 
     def append_reading(self, reading: Reading):
         """Append a reading to this cohort."""
         reading.parent_cohort = self
+        if reading.number < 0:
+            reading.number = self._next_number
+        self._next_number = max(self._next_number, reading.number + 1)
         self.readings.append(reading)
+
+    def ordered_readings(self) -> List[Reading]:
+        """The readings in the order vislcg3 prints them (see remove_reading for why that is not self.readings)."""
+        return sorted(self.readings, key=lambda r: r.number)
 
     def dedupe_readings(self, with_trace: bool = False) -> bool:
         """Drop later readings that have the same base form and the same set of tags as an earlier one
@@ -237,7 +249,15 @@ class Cohort:
             if rule_name:
                 reading.trace.append(rule_name)
             self.deleted_readings.append(reading)
-            self.readings = [r for r in self.readings if r is not reading]
+            for i, r in enumerate(self.readings):
+                if r is reading:
+                    # vislcg3 fills the gap with the last reading instead of closing it up. The output is kept in
+                    # order by the reading numbers, but "first reading that matches" (the $$ unification binds to
+                    # it) goes by the order in the list.
+                    last = self.readings.pop()
+                    if i < len(self.readings):
+                        self.readings[i] = last
+                    break
 
     def to_text(self, show_rules: bool = False, trace: bool = False, pipe_deleted: bool = False) -> str:
         """Format cohort into VISL CG-3 stream format."""
@@ -248,7 +268,7 @@ class Cohort:
         if self.untouchable_tags:
             header += " " + " ".join(self.untouchable_tags)
         out.append(header)
-        for r in self.readings:
+        for r in self.ordered_readings():
             out.append(r.to_text(show_rules=show_rules, trace=trace))
         if pipe_deleted:
             for r in self.deleted_readings:
