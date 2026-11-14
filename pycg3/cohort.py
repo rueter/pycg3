@@ -145,7 +145,7 @@ class Reading:
         parts = []
         if self.baseform:
             parts.append(self.baseform)
-        parts.extend(self.tags)
+        parts.extend(t for t in self.tags if t != '<<<' and t != '>>>')     # the window edge tags are never printed
         if dep:
             parts.append(dep)           # #self->parent, after the tags and before the rule labels
         line = indent + " ".join(parts)
@@ -177,6 +177,41 @@ class Reading:
         return f"Reading({self.baseform} {' '.join(self.tags)})"
 
 
+def _plain_key(r: 'Reading'):
+    """A reading without its mapping tags: what vislcg3 compares (hash_plain) when it merges readings for output."""
+    return (r.baseform, frozenset(t for t in r.tags if t not in r.mapping_tags), tuple(_plain_key(s) for s in r.sub_readings))
+
+
+def _has_mapping(r: 'Reading') -> bool:
+    return bool(r.mapping_tags) or any(_has_mapping(s) for s in r.sub_readings)
+
+
+def merge_mapped_readings(readings: List['Reading'], with_trace: bool = False) -> List['Reading']:
+    """vislcg3 prints readings that differ only in their mapping tag as one reading with all the mapping tags, last
+    (mergeMappings; --split-mappings turns it off). Readings with a mapping tag only merge with others that have one."""
+    groups: Dict[Any, List['Reading']] = {}
+    for r in readings:
+        key = (_plain_key(r), tuple(r.trace) if with_trace else (), _has_mapping(r))
+        groups.setdefault(key, []).append(r)
+    if len(groups) == len(readings):
+        return list(readings)
+    out = []
+    for members in groups.values():
+        first = members[0]
+        nr = first.clone(parent_cohort=first.parent_cohort)
+        maps: List[str] = []
+        for m in members:
+            for t in m.tags:
+                if t in m.mapping_tags and t not in maps:
+                    maps.append(t)
+        nr.tags = [t for t in first.tags if t not in first.mapping_tags] + maps
+        nr._tag_set = set(nr.tags)
+        nr.mapping_tags = set(maps)
+        nr._match_cache = None
+        out.append(nr)
+    return out
+
+
 class Cohort:
     """Represents a cohort (a wordform with its readings and untouchable tags)."""
 
@@ -194,7 +229,11 @@ class Cohort:
         '_wread',
         '_next_number',
         'dep_parent',
-        'dep_children'
+        'dep_children',
+        'dep_in',
+        'relations',
+        'related',
+        'rel_in'
     )
 
     def __init__(
@@ -220,6 +259,10 @@ class Cohort:
         self.is_end = False          # the last cohort of a window: its readings answer to the tag <<<
         self.dep_parent: Optional['Cohort'] = None       # set by SETPARENT / SETCHILD; the begin cohort is the root
         self.dep_children: List['Cohort'] = []
+        self.relations: Dict[str, List[int]] = {}        # relation name -> global numbers of the cohorts it points to
+        self.related = False                              # prints ID:n (and the relations); set by a relation rule or input ID:/R: tags
+        self.rel_in: Optional[tuple] = None               # (own input id, {name: set of input ids}) from ID: and R:name:id tags
+        self.dep_in: Optional[tuple] = None              # (own number, parent number) as the input gave them in #n->m
 
     def append_reading(self, reading: Reading):
         """Append a reading to this cohort."""
@@ -253,6 +296,38 @@ class Cohort:
                 new_readings.append(r)
         self.readings = new_readings
         return True
+
+    def add_relation(self, name: str, target: int) -> bool:
+        ids = self.relations.setdefault(name, [])
+        if target in ids:
+            return False
+        ids.append(target)
+        ids.sort()
+        return True
+
+    def set_relation(self, name: str, target: int) -> bool:
+        ids = self.relations.setdefault(name, [])
+        if ids == [target]:
+            return False
+        self.relations[name] = [target]
+        return True
+
+    def rem_relation(self, name: str, target: int) -> bool:
+        ids = self.relations.get(name)
+        if ids is not None and target in ids:
+            ids.remove(target)
+            return True
+        return False
+
+    def relation_text(self) -> str:
+        """ID:n R:name:m ... as vislcg3 prints them: the names in the order of their hashes."""
+        if not self.related:
+            return ""
+        from pycg3.tag import cg3_hash
+        parts = ["ID:%d" % self.global_number]
+        for name in sorted(self.relations, key=cg3_hash):
+            parts.extend("R:%s:%d" % (name, target) for target in self.relations[name])
+        return " ".join(parts)
 
     def ordered_readings(self) -> List[Reading]:
         """The readings in the order vislcg3 prints them (see remove_reading for why that is not self.readings)."""
@@ -318,7 +393,7 @@ class Cohort:
         if self.untouchable_tags:
             header += " " + " ".join(self.untouchable_tags)
         out.append(header)
-        for r in self.ordered_readings():
+        for r in merge_mapped_readings(self.ordered_readings(), trace):
             out.append(r.to_text(show_rules=show_rules, trace=trace, dep=dep))
         if pipe_deleted:
             for r in self.deleted_readings:
@@ -396,6 +471,56 @@ class SingleWindow:
         cohort.parent_window = self
         self.cohorts.append(cohort)
 
+    def resolve_input_relations(self, relation_map: Dict[int, 'Cohort']):
+        """ID:n and R:name:m of the input: relation_map takes an input id to the cohort that carried it; relations to ids
+        not seen (yet) are dropped."""
+        for c in self.cohorts:
+            if c.rel_in is not None and c.rel_in[0]:
+                relation_map[c.rel_in[0]] = c
+        for c in self.cohorts:
+            if c.rel_in is None:
+                continue
+            c.related = True
+            for name, targets in c.rel_in[1].items():
+                for t in sorted(targets):
+                    other = relation_map.get(t)
+                    if other is not None:
+                        c.add_relation(name, other.global_number)
+
+    def resolve_input_dependencies(self):
+        """The #n->m of the input become real links. n and m count the cohorts as the input numbered them (it may restart
+        in every window, or a repeated n starts a new numbering); a parent that does not exist leaves the cohort without
+        one, and 0 is the root (vislcg3's reflowDependencyWindow)."""
+        pending, numbering = [], {}
+
+        def flush():
+            numbering[0] = self.begin
+            for c in pending:
+                own, parent = c.dep_in
+                if own == parent:
+                    continue
+                target = numbering.get(parent)
+                if target is None or target is c:
+                    continue
+                c.dep_parent = target
+                target.dep_children.append(c)
+            for c in pending:
+                c.dep_children.sort(key=self.index_of)
+            self.begin.dep_children.sort(key=self.index_of)
+            pending.clear()
+            numbering.clear()
+
+        for c in self.cohorts:
+            if c.dep_in is None:
+                continue
+            self.has_dep = True
+            if c.dep_in[0] in numbering:
+                flush()
+            numbering[c.dep_in[0]] = c
+            pending.append(c)
+        if pending:
+            flush()
+
     def to_text(self, show_rules: bool = False, trace: bool = False, pipe_deleted: bool = False,
                 deps: Optional[bool] = None) -> str:
         """deps: print #self->parent on every reading (vislcg3 does once a dependency rule has attached anything);
@@ -408,6 +533,9 @@ class SingleWindow:
             if deps:
                 parent = c.dep_parent
                 dep = "#%d->%d" % (k + 1, self.index_of(parent) if parent is not None else k + 1)
+            rel = c.relation_text()
+            if rel:
+                dep = (dep + " " + rel) if dep else rel
             lines.append(c.to_text(show_rules=show_rules, trace=trace, pipe_deleted=pipe_deleted, dep=dep))
         if self.text_after:
             lines.extend(self.text_after)

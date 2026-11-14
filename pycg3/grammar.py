@@ -16,10 +16,15 @@ RULE_KEYWORDS = {
     'SELECT', 'REMOVE', 'IFF', 'ADD', 'MAP', 'UNMAP', 'REPLACE', 'SUBSTITUTE', 'APPEND', 'COPY',
     'ADDCOHORT', 'REMCOHORT', 'MOVE', 'SWITCH', 'SETVARIABLE', 'REMVARIABLE', 'EXECUTE', 'JUMP',
     'SETPARENT', 'SETCHILD',
+    'ADDRELATION', 'SETRELATION', 'REMRELATION', 'ADDRELATIONS', 'SETRELATIONS', 'REMRELATIONS',
+    'REMPARENT', 'SWITCHPARENT',
 }
 DEP_RULES = {'SETPARENT', 'SETCHILD'}      # attach to the cohort the TO tests lead to
+REL_RULES = {'ADDRELATION', 'SETRELATION', 'REMRELATION', 'ADDRELATIONS', 'SETRELATIONS', 'REMRELATIONS'}
+REL_PAIR = {'ADDRELATIONS', 'SETRELATIONS', 'REMRELATIONS'}          # two relation names: target -> found, found -> target
+TO_RULES = DEP_RULES | REL_RULES                                      # rules that end in TO / FROM (tests)
 # rule types that take their tags before the target set
-ONE_ACTION = {'ADD', 'MAP', 'REPLACE', 'APPEND', 'COPY', 'ADDCOHORT', 'SETVARIABLE', 'REMVARIABLE'}
+ONE_ACTION = {'ADD', 'MAP', 'REPLACE', 'APPEND', 'COPY', 'ADDCOHORT', 'SETVARIABLE', 'REMVARIABLE'} | REL_RULES
 RULE_FLAGS = {
     'WITHCHILD', 'NOCHILD', 'ITERATE', 'NOITERATE', 'UNSAFE', 'SAFE', 'REVERSE', 'KEEPORDER', 'VARYORDER',
     'ENCL_INNER', 'ENCL_OUTER', 'ENCL_FINAL', 'ENCL_ANY', 'LOOKDELETED', 'LOOKDELAYED', 'LOOKIGNORED',
@@ -94,6 +99,10 @@ class Grammar:
         self.sections: List[List[Rule]] = []
         self.after_sections: List[Rule] = []
         self.null_section: List[Rule] = []
+        self.has_relations = False
+        self.has_dep = False                # dependency rules or tests: the #n->m of the input are read
+        self.dep_block_crossing = False
+        self.dep_block_loops = True
 
     def get_set(self, name: str) -> Optional[SetDefinition]:
         return self.sets.get(name)
@@ -145,9 +154,11 @@ class GrammarParser:
         line = stmt[0][1]
         g = self.grammar
         if kw == 'DELIMITERS' and '=' in words:
-            g.delimiters = self._tag_list_set("_DELIMITERS_", stmt[words.index('=') + 1:], line)
+            g.delimiters = self._tag_list_set("_S_DELIMITERS_", stmt[words.index('=') + 1:], line)
+            g.sets['_S_DELIMITERS_'] = g.delimiters
         elif kw == 'SOFT-DELIMITERS' and '=' in words:
-            g.soft_delimiters = self._tag_list_set("_SOFT_DELIMITERS_", stmt[words.index('=') + 1:], line)
+            g.soft_delimiters = self._tag_list_set("_S_SOFT_DELIMITERS_", stmt[words.index('=') + 1:], line)
+            g.sets['_S_SOFT_DELIMITERS_'] = g.soft_delimiters
         elif kw == 'MAPPING-PREFIX' and '=' in words:
             val = words[words.index('=') + 1] if words.index('=') + 1 < len(words) else ''
             if val:
@@ -162,7 +173,7 @@ class GrammarParser:
         elif kw == 'SET' and len(words) >= 3 and words[2] == '=':
             g.sets[words[1]] = self._set_expression(words[1], stmt[3:], line)
         elif kw in ('SETS', 'STATIC-SETS', 'SUBREADINGS', 'PARENTHESES', 'INCLUDE', 'TEMPLATE', 'ANCHOR',
-                    'CMDLINE', 'DELIMITERS', 'SOFT-DELIMITERS', 'MAPPING-PREFIX'):
+                    'CMDLINE', 'DELIMITERS', 'SOFT-DELIMITERS', 'MAPPING-PREFIX', 'LIST-TAGS', 'CMDARGS'):
             return
         else:
             rule = self._rule(stmt)
@@ -316,14 +327,7 @@ class GrammarParser:
         i = 1
         flags = set()
         sub = None
-        while i < len(words) and (words[i].upper() in RULE_FLAGS or SUB_FLAG_RE.match(words[i])):
-            sm = SUB_FLAG_RE.match(words[i])
-            if sm:
-                sub = int(sm.group(1))      # SUB:n - the rule looks at the n-th sub-reading of each reading
-            else:
-                flags.add(words[i].upper())
-            i += 1
-
+        childset = None
         def group_at(i):
             """The tags of the parenthesised group starting at words[i] and the index after it."""
             depth, j, inner = 1, i + 1, []
@@ -338,7 +342,38 @@ class GrammarParser:
                 j += 1
             return inner, j + 1
 
+        def scan_set(j):
+            """The index after the set expression that starts at words[j]: operands joined by OR / + / - ..."""
+            while True:
+                if j < len(words) and words[j] == '(':
+                    j = group_at(j)[1]
+                elif j < len(words) and words[j].upper() not in ('IF', 'EXCEPT', 'TO', 'FROM', 'TARGET'):
+                    j += 1
+                else:
+                    break
+                if j < len(words) and (words[j].upper() == 'OR' or words[j] == '|' or words[j] in SET_OPS):
+                    j += 1
+                    continue
+                break
+            return j
+
+        while i < len(words) and (words[i].upper() in RULE_FLAGS or SUB_FLAG_RE.match(words[i])):
+            sm = SUB_FLAG_RE.match(words[i])
+            if sm:
+                sub = int(sm.group(1))      # SUB:n - the rule looks at the n-th sub-reading of each reading
+            elif words[i].upper() == 'WITHCHILD':       # WITHCHILD set: the cohort and the subtree of it that the set matches
+                flags.add('WITHCHILD')
+                end = scan_set(i + 1)
+                childset = self._set_expression("", stmt[i + 1:end], line)
+                self.grammar.has_dep = True
+                i = end
+                continue
+            else:
+                flags.add(words[i].upper())
+            i += 1
+
         action_tags: List[str] = []
+        rel_sub: List[str] = []
         subst_old = None
         if rtype == 'SUBSTITUTE':
             if i < len(words) and words[i] == '(':
@@ -355,6 +390,8 @@ class GrammarParser:
             elif i < len(words):
                 action_tags = [words[i]]
                 i += 1
+            if rtype in REL_PAIR and i < len(words) and words[i] == '(':
+                rel_sub, i = group_at(i)
         direction = "AFTER"
         if rtype in ('ADDCOHORT', 'MOVE') and i < len(words) and words[i].upper() in ('BEFORE', 'AFTER'):
             direction = words[i].upper()
@@ -375,7 +412,7 @@ class GrammarParser:
         while True:
             if j < len(words) and words[j] == '(':
                 j = group_at(j)[1]
-            elif j < len(words) and words[j].upper() not in (('IF', 'EXCEPT', 'TO', 'FROM') if rtype in DEP_RULES
+            elif j < len(words) and words[j].upper() not in (('IF', 'EXCEPT', 'TO', 'FROM') if rtype in TO_RULES
                                                               else ('IF', 'EXCEPT')):
                 j += 1
             else:
@@ -394,8 +431,10 @@ class GrammarParser:
                 inner, k = group_at(k)
                 into.append(self._context_test(inner, line))
             else:
-                if rtype in DEP_RULES and words[k].upper() in ('TO', 'FROM'):
+                if rtype in TO_RULES and words[k].upper() in ('TO', 'FROM'):
                     into = dep_tests
+                    if words[k].upper() == 'FROM':
+                        flags.add('REVERSE')           # FROM: the cohort found is the child (SETPARENT) / the one that is related to
                 k += 1
         rule = Rule(rule_type=rtype, target=target, name=name, line_number=line, context_tests=tests,
                     action_tags=action_tags, subst_old=subst_old)
@@ -404,6 +443,15 @@ class GrammarParser:
         rule.flags = flags
         rule.sub = sub
         rule.copy_except = copy_except
+        if rtype in DEP_RULES:
+            self.grammar.has_dep = True
+        rule.childset = childset
+        if rtype in REL_RULES:
+            rule.rel_sub = rel_sub
+            self.grammar.has_relations = True
+            # vislcg3 -t writes the relation names after the rule type: ADDRELATION(name):line, ADDRELATIONS(a,b):line
+            names = action_tags[:1] + (rel_sub[:1] if rtype in REL_PAIR else [])
+            rule.label = "%s(%s):%d%s" % (rtype, ",".join(names), line, (":" + name) if name else "")
         rule.uses_unify = self._unify_seen
         self._unify_seen = False
         return rule
@@ -473,6 +521,9 @@ class GrammarParser:
         offset, scan_first, scan_all, careful, absolute, self_, no_barrier = 0, False, False, False, False, False, False
         sub = None                  # (0/1 ...): look at sub-reading 1 of each reading of the cohort
         dep, attach = None, False   # (p ...) (c ...) (s ...): dependency positions; A: attach here
+        relation = None
+        if pos.startswith('r:') and len(pos) > 2:           # r:name - follow the relation `name`
+            dep, relation = 'r', pos[2:]
         m = POSITION_RE.match(pos)
         if m:
             absolute = bool(m.group(1))
@@ -486,6 +537,7 @@ class GrammarParser:
             for letters in ('pp', 'cc', 'p', 'c', 's'):          # p parent, c child, s sibling, pp ancestors, cc descendants
                 if letters in flags:
                     dep = letters
+                    self.grammar.has_dep = True
                     break
             if m.group(7) is not None:
                 sub = '*' if m.group(7) == '*' else int(m.group(7))     # /* : the reading or any of its sub-readings
@@ -527,4 +579,4 @@ class GrammarParser:
         return ContextualTest(target=target, offset=offset, scan_first=scan_first, scan_all=scan_all, careful=careful,
                               not_=is_not, negate=is_negate, absolute=absolute, self_=self_, no_barrier=no_barrier,
                               all_=all_, none_=none_, barrier=barrier, cbarrier=cbarrier, linked_test=linked,
-                              raw_pos=pos, sub=sub, dep=dep, attach=attach)
+                              raw_pos=pos, sub=sub, dep=dep, attach=attach, relation=relation)

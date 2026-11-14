@@ -11,6 +11,8 @@ from pycg3.set_def import SetDefinition
 # the form ends at the first '>"' (resp. the base form at the first '"') that is followed by white space or the end of the line.
 COHORT_RE = re.compile(r'^\s*\"<(.+?)>\"(?=\s|$)(.*)$')
 READING_RE = re.compile(r'^(\s+)(;?\s*)\"(.*?)\"(?=\s|$)(.*)$')
+DEP_TAG_RE = re.compile(r'^#(\d+)(?:->|\u2192)(\d+)$')
+REL_TAG_RE = re.compile(r'^(?:ID:(\d+)|R:([^:]+):(\d+))$')
 STREAM_CMD_RE = re.compile(r'^<STREAMCMD:([A-Z]+)(?::([^>]*))?>$')
 
 
@@ -56,6 +58,57 @@ def split_tags(tag_str: str) -> List[str]:
     return tags
 
 
+def extract_relations(cohort: Cohort):
+    """With relation rules in the grammar, ID:n and R:name:m on a reading are the relations of the cohort, not tags."""
+    ident, rels = 0, {}
+    found = False
+
+    def strip(r):
+        nonlocal ident, found
+        keep = []
+        for t in r.tags:
+            m = REL_TAG_RE.match(t) if (t.startswith('ID:') or t.startswith('R:')) else None
+            if m and (m.group(1) is None or int(m.group(1)) != 0):
+                found = True
+                if m.group(1) is not None:
+                    ident = int(m.group(1))
+                else:
+                    rels.setdefault(m.group(2), set()).add(int(m.group(3)))
+            else:
+                keep.append(t)
+        if len(keep) != len(r.tags):
+            r.tags = keep
+            r._tag_set = set(keep)
+            r._match_cache = None
+        for sub in r.sub_readings:
+            strip(sub)
+    for r in cohort.readings + cohort.deleted_readings:
+        strip(r)
+    if found:
+        cohort.rel_in = (ident, rels)
+
+
+def extract_dependency(cohort: Cohort):
+    """#n->m on a reading is the dependency of the cohort, not a tag of the reading: vislcg3 keeps it out of the tags
+    and prints it again, in its own numbering, when it writes the cohort."""
+    def strip(r):
+        keep = []
+        for t in r.tags:
+            m = DEP_TAG_RE.match(t) if t.startswith('#') else None
+            if m and int(m.group(1)) != 0:
+                cohort.dep_in = (int(m.group(1)), int(m.group(2)))
+            else:
+                keep.append(t)
+        if len(keep) != len(r.tags):
+            r.tags = keep
+            r._tag_set = set(keep)
+            r._match_cache = None
+        for sub in r.sub_readings:
+            strip(sub)
+    for r in cohort.readings + cohort.deleted_readings:
+        strip(r)
+
+
 def split_all_mappings(cohort: Cohort, mapping_prefix: str = '@'):
     """
     In VISL CG-3, if a reading has multiple mapping tags (e.g. starting with @),
@@ -88,7 +141,9 @@ def parse_stream(
     stream: TextIO,
     delimiters_set: Optional[SetDefinition] = None,
     mapping_prefix: str = '@',
-    hard_limit: int = 500
+    hard_limit: int = 500,
+    has_relations: bool = False,
+    has_dep: bool = True
 ) -> Iterator[SingleWindow]:
     """
     Parse a CG-3 plaintext input stream lazily into SingleWindow objects.
@@ -99,14 +154,21 @@ def parse_stream(
     reading_stack: List[Tuple[int, Reading]] = []
     pending_text: List[str] = []
     line_number = 0
-    cohort_counter = 0
+    cohort_counter = 1                      # vislcg3 numbers the begin cohort of every window too: 0, then 1.. for the first window
+    current_window.begin.global_number = 0
 
     def finish_cohort(c: Cohort):
+        if not c.readings and not c.deleted_readings:           # a cohort without readings gets one: the word form as base form
+            c.append_reading(Reading(baseform='"%s"' % c.wordform[2:-2], tags=[], parent_cohort=c))
+        if has_relations:
+            extract_relations(c)
+        if has_dep:
+            extract_dependency(c)
         split_all_mappings(c, mapping_prefix=mapping_prefix)
         c.dedupe_readings()
 
     def finish_window():
-        nonlocal current_window, current_cohort, reading_stack
+        nonlocal current_window, current_cohort, reading_stack, cohort_counter
         if current_cohort is not None:
             finish_cohort(current_cohort)
             current_window.append_cohort(current_cohort)
@@ -117,6 +179,8 @@ def parse_stream(
             pending_text.clear()
         win = current_window
         current_window = SingleWindow()
+        current_window.begin.global_number = cohort_counter
+        cohort_counter += 1
         return win
 
     for raw_line in stream:
@@ -184,7 +248,6 @@ def parse_stream(
             wordform_tag = f'"<{word}>"'
             untouchable = split_tags(rest) if rest else []
 
-            cohort_counter += 1
             current_cohort = Cohort(
                 wordform=wordform_tag,
                 untouchable_tags=untouchable,
@@ -192,6 +255,7 @@ def parse_stream(
                 line_number=line_number,
                 global_number=cohort_counter
             )
+            cohort_counter += 1
             pending_text.clear()
             continue
 

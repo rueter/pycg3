@@ -6,6 +6,10 @@ from pycg3.context import ContextualTest
 from pycg3.set_def import SetDefinition, CompositeTag, _is_literal
 from pycg3.tag import is_baseform
 
+DEP_TYPES = ('SETPARENT', 'SETCHILD')
+REL_TYPES = ('ADDRELATION', 'SETRELATION', 'REMRELATION', 'ADDRELATIONS', 'SETRELATIONS', 'REMRELATIONS')
+TO_TYPES = DEP_TYPES + REL_TYPES
+
 
 class Rule:
     """A single CG-3 rule: TYPE[:name] [flags] [action] [TARGET] set [IF test...]."""
@@ -13,7 +17,7 @@ class Rule:
     __slots__ = (
         'type', 'name', 'label', 'line_number', 'target', 'target_modifiers', 'context_tests',
         'action_tags', 'subst_old', 'subst_old_tag', 'wordform_filter', 'direction', 'flags', 'is_careful',
-        'uses_unify', 'sub', '_maps', 'copy_except', 'dep_tests',
+        'uses_unify', 'sub', '_maps', 'copy_except', 'dep_tests', 'rel_sub', 'childset',
     )
 
     def __init__(self, rule_type: str, target: Any, name: str = "", line_number: int = 0,
@@ -40,6 +44,8 @@ class Rule:
         self.sub = None             # SUB:n - the target set is matched against the n-th sub-reading
         self.copy_except = None     # COPY (tags) EXCEPT set TARGET ... - the copy leaves out the tags in this set
         self.dep_tests: List[ContextualTest] = []      # SETPARENT / SETCHILD ... TO (tests)
+        self.childset = None                            # WITHCHILD set: SWITCHPARENT takes along the siblings it matches
+        self.rel_sub: List[str] = []                    # ADDRELATIONS (a) (b): the names b, for the cohort found
 
     @property
     def iterates(self) -> bool:
@@ -68,7 +74,7 @@ class Rule:
                 # vislcg3 makes one reading of each mapping tag when a rule's target matches one of them
                 if any(self._target_matches(r) for r in cohort.readings if not r.deleted and len(r.mapping_tags) > 1):
                     cohort.split_mappings(mp)
-            if self.uses_unify and self.type in ('SETPARENT', 'SETCHILD'):
+            if self.uses_unify and self.type in TO_TYPES:
                 targets = [r for r in cohort.readings if not r.deleted]      # _set_dependency binds the $$Sets itself
                 tests_ok = True
                 if not targets:
@@ -84,6 +90,9 @@ class Rule:
                 tests_ok = None
             if not targets and self.type not in ('SETVARIABLE', 'REMVARIABLE'):     # ADDCOHORT / REMCOHORT need a target too
                 i += 1
+                continue
+            if self.type in ('REMPARENT', 'SWITCHPARENT') and cohort.dep_parent is None:
+                i += 1                                      # no parent: nothing to remove or switch
                 continue
             if tests_ok is None:
                 tests_ok = all(t.evaluate(window, i, grammar) for t in self.context_tests)
@@ -159,8 +168,14 @@ class Rule:
     def _act(self, window, i, cohort, targets, grammar) -> Tuple[bool, int]:
         t = self.type
         mp = grammar.mapping_prefix if grammar else '@'
-        if t in ('SETPARENT', 'SETCHILD'):
+        if t in TO_TYPES:
             return self._set_dependency(window, i, cohort, targets, grammar), 0
+        if t == 'REMPARENT':
+            targets[0].trace.append(self.label)
+            cohort.dep_parent = None               # vislcg3 leaves the cohort in the old parent's list of children
+            return True, 0
+        if t == 'SWITCHPARENT':
+            return self._switch_parent(window, cohort, targets[0], grammar), 0
         if t == 'SELECT':
             return self._select(cohort, targets), 0
         if t == 'REMOVE':
@@ -233,7 +248,6 @@ class Rule:
         from pycg3 import set_def
         if not self.dep_tests:
             return False
-        as_child = self.type == 'SETPARENT'
         lead = targets[0] if targets else None      # the reading that gets the label
         if self.uses_unify:
             # $$Sets bind on the first reading that matches the target and have to agree in the contexts and the TO
@@ -255,6 +269,9 @@ class Rule:
         if found is None:
             return False
         other = window.virtual(found)
+        if self.type in REL_TYPES:
+            return self._relate(cohort, other, lead)
+        as_child = (self.type == 'SETPARENT') != ('REVERSE' in self.flags)      # FROM turns it round
         child, parent = (cohort, other) if as_child else (other, cohort)
         if child.dep_parent is not parent:           # vislcg3 labels the readings even when it attaches to the same parent again
             if child.dep_parent is not None:
@@ -267,11 +284,72 @@ class Rule:
             lead.trace.append(self.label)           # vislcg3 labels the first reading that matched, not all of them
         return True
 
+    def _switch_parent(self, window, child, lead, grammar) -> bool:
+        """SWITCHPARENT WITHCHILD set target: the cohort becomes the parent of its own parent and of the siblings the set
+        matches, and takes the place of the parent under the grandparent."""
+        from pycg3 import context
+        parent = child.dep_parent
+        grand = parent.dep_parent
+        siblings = [c for c in window.cohorts if c.dep_parent is parent and
+                    (self.childset is None or self.childset.matches_cohort_normal(c))]
+        lead.trace.append(self.label)
+        child.dep_parent = None
+        parent.dep_parent = None
+        for s in siblings:
+            s.dep_parent = None
+
+        def attach(p, c):
+            state = context.AttachState(window, c, as_child=True, block_crossing=getattr(grammar, 'dep_block_crossing', False),
+                                        block_loops=getattr(grammar, 'dep_block_loops', True))
+            if not state.valid(window.index_of(p)):
+                return
+            if c.dep_parent is not None and c in c.dep_parent.dep_children:
+                c.dep_parent.dep_children.remove(c)
+            c.dep_parent = p
+            p.dep_children.append(c)
+            p.dep_children.sort(key=window.index_of)
+
+        if grand is not None:
+            attach(grand, child)
+        attach(child, parent)
+        for s in siblings:
+            attach(child, s)
+        return True
+
+    def _relate(self, cohort, other, lead) -> bool:
+        """ADDRELATION / SETRELATION / REMRELATION (name): the target cohort gets a relation to the cohort found (FROM turns
+        it round); the plural rules also give the cohort found one back, under the second name."""
+        target, attach = (other, cohort) if 'REVERSE' in self.flags else (cohort, other)
+        did = False
+        kind = self.type[:3]
+
+        def apply(owner, name, to):
+            if kind == 'ADD':
+                owner.related = True
+                return owner.add_relation(name, to.global_number)
+            if kind == 'SET':
+                owner.related = True
+                return owner.set_relation(name, to.global_number)
+            return owner.rem_relation(name, to.global_number)
+
+        for name in self.action_tags:
+            if self.type in ('ADDRELATION', 'SETRELATION'):
+                attach.related = True
+            did |= apply(target, name, attach)
+        for name in self.rel_sub:
+            did |= apply(attach, name, target)
+        if did and lead is not None:
+            lead.trace.append(self.label)
+        return did
+
     def _dep_search(self, window, i, cohort, grammar):
         """The index of the cohort the TO tests lead to for the cohort at window index i, or None."""
         from pycg3 import context
-        state = context.AttachState(window, cohort, as_child=self.type == 'SETPARENT',
-                                    allow_loop='ALLOWLOOP' in self.flags)
+        state = context.AttachState(window, cohort, as_child=(self.type == 'SETPARENT') != ('REVERSE' in self.flags),
+                                    check=self.type in DEP_TYPES,
+                                    allow_loop='ALLOWLOOP' in self.flags, allow_cross='ALLOWCROSS' in self.flags,
+                                    block_crossing=getattr(grammar, 'dep_block_crossing', False),
+                                    block_loops=getattr(grammar, 'dep_block_loops', True))
         found = None
         try:
             for n, test in enumerate(self.dep_tests):

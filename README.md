@@ -181,11 +181,20 @@ on every reading once a rule has attached anything. As in vislcg3 a later rule r
 is never its own parent and never a descendant's child, and a scan goes on past a cohort that would make a loop.
 On the GiellaLT Southern Sámi grammar, `dependency.cg3` agrees with vislcg3 on 27,251 of 27,252 cohorts, on North Sámi on all 2,797.
 
-**Not implemented** (they fail on the CG-3 project's own tests, `tools/run_upstream.py`): relation rules (`SETRELATION`,
-`ADDRELATION`), reading dependencies already present in the input (`#1->2`), templates, `WITH`, `MOVE`/`SWITCH`/`SPLITCOHORT`/
-`MERGECOHORTS`, enclosures/parentheses, `MARK`/`ATTACH`/jumps, regex captures (`$1`) and varstrings, `--unique-tags`,
-`-e`, `--sections` ranges, JSON/binary I/O and multi-window spans. `disambiguator.bin` (a compiled `CG3B` grammar) cannot
-be read; use the `.cg3` source.
+**Relations and dependencies in the input.** `ADDRELATION`, `SETRELATION`, `REMRELATION` and the plural `*RELATIONS`
+rules work, with `TO` and `FROM`, the `r:name` context position (with `ALL` / `NONE`) and `ID:n R:name:m` in the output, in vislcg3's order
+(by the hash of the relation name, `cg3_hash`). `#n->m` already present in the input is read when the grammar uses dependencies (it is
+renumbered per window, a parent that does not exist leaves the cohort without one, 0 is the root); `REMPARENT` and `SWITCHPARENT WITHCHILD`
+work, and `--dep-no-crossing` / `--dep-allow-loops` are the `Disambiguator` options `dep_no_crossing` / `dep_allow_loops`.
+Readings that differ only in their mapping tag are printed as one reading, as vislcg3 does.
+
+On the CG-3 project's own tests (`tools/run_upstream.py`) 19 of the 69 pass, among them `T_Dependency_Loops`, `T_SetParentChild`,
+`T_SwitchParent` and `T_Dependency_OutOfRange`.
+
+**Not implemented** (they fail on the CG-3 project's own tests): templates, `WITH`, `MOVE`/`SWITCH`/`SPLITCOHORT`/`MERGECOHORTS`/`COPYCOHORT`,
+enclosures/parentheses, `MARK`/`ATTACH`/jumps, regex captures (`$1`) and varstrings, multi-window spans (`W`, `<`, `>` in positions),
+bag of tags, the leftmost/rightmost dependency positions (`llc`, `rrp`, ...), `--unique-tags`, `-e`, `--sections` ranges,
+`--split-mappings`, JSON/binary I/O. `disambiguator.bin` (a compiled `CG3B` grammar) cannot be read; use the `.cg3` source.
 
 ---
 
@@ -203,7 +212,7 @@ The entire test suite executes in ~10 milliseconds with negligible RAM usage (< 
 
 ## License
 
-GNU General Public License v3 or later (matching VISL CG-3).
+MIT License (see `LICENSE`).
 
 
 ## CITE

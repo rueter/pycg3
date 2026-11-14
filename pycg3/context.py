@@ -36,14 +36,15 @@ class ContextualTest:
 
     __slots__ = ('target', 'offset', 'scan_first', 'scan_all', 'careful', 'not_', 'negate', 'absolute',
                  'self_', 'no_barrier', 'all_', 'none_', 'barrier', 'cbarrier', 'linked_test', 'raw_pos', 'ors', 'sub',
-                 'dep', 'attach')
+                 'dep', 'attach', 'relation')
 
     def __init__(self, target: SetDefinition, offset: int = 0, scan_first: bool = False, scan_all: bool = False,
                  careful: bool = False, not_: bool = False, negate: bool = False, absolute: bool = False,
                  self_: bool = False, no_barrier: bool = False, all_: bool = False, none_: bool = False,
                  barrier: Optional[SetDefinition] = None, cbarrier: Optional[SetDefinition] = None,
                  linked_test: Optional['ContextualTest'] = None, raw_pos: str = "", sub: Optional[int] = None,
-                 dep: Optional[str] = None, attach: bool = False):
+                 dep: Optional[str] = None, attach: bool = False, relation: Optional[str] = None):
+        self.relation = relation    # r:name - the cohorts the relation `name` points to (r:* any relation)
         self.dep = dep              # p parent, c children, s siblings, pp ancestors, cc descendants (dependency tests)
         self.attach = attach        # the A flag: this test's cohort is the one a SETPARENT / SETCHILD attaches to
         self.target = target
@@ -103,31 +104,54 @@ class AttachState:
     """What a SETPARENT / SETCHILD rule is attaching while its TO tests run: the tests report the cohort to attach
     to, and a candidate that would make a loop (or is the cohort itself) counts as a test that did not match, so a
     scan goes on to the next cohort (as in vislcg3)."""
-    __slots__ = ('window', 'cohort', 'as_child', 'allow_loop', 'marked', 'final', 'matched', 'rejections')
+    __slots__ = ('window', 'cohort', 'as_child', 'allow_loop', 'marked', 'final', 'matched', 'rejections',
+                 'allow_cross', 'block_crossing', 'block_loops', 'check')
 
-    def __init__(self, window, cohort, as_child=True, allow_loop=False):
+    def __init__(self, window, cohort, as_child=True, allow_loop=False, allow_cross=False, block_crossing=False,
+                 block_loops=True, check=True):
         self.window = window
         self.cohort = cohort          # the cohort the rule is on
         self.as_child = as_child      # SETPARENT: it becomes the child of the cohort found; SETCHILD: the parent
-        self.allow_loop = allow_loop
+        self.allow_loop = allow_loop or not block_loops
+        self.allow_cross = allow_cross
+        self.block_crossing = block_crossing
+        self.block_loops = block_loops
+        self.check = check            # relations may point anywhere, the cohort itself included
         self.marked: Optional[int] = None     # index of the cohort whose test has the A flag
         self.final: Optional[int] = None      # index of the cohort the last LINKed test ended on
         self.matched = False                  # the tests led somewhere, even if only to a cohort that cannot be attached
         self.rejections = 0                   # how many candidates were turned down as self or loop
 
+    def _crosses(self, parent, child) -> bool:
+        """wouldParentChildCross, quirks included: it only looks at the parent's parent and what that one hangs on."""
+        a, b = self.window.index_of(parent), self.window.index_of(child)
+        mn, mx = min(a, b), max(a, b)
+        if mx - mn < 2:
+            return False
+        grand = parent.dep_parent
+        if grand is not None and grand.dep_parent is not None:
+            top = self.window.index_of(grand.dep_parent)
+            if top < mn or top > mx:
+                return True
+        return False
+
     def valid(self, index: int) -> bool:
+        if not self.check:
+            return True
         other = self.window.virtual(index)
         if other is self.cohort:
             return False
-        if self.allow_loop:
-            return True
         # the child must not be an ancestor of the parent
         child, parent = (self.cohort, other) if self.as_child else (other, self.cohort)
-        node = parent
-        while node is not None:
-            if node is child:
-                return False
-            node = node.dep_parent
+        if not self.allow_loop and child.dep_parent is not parent:
+            node, seen = parent, set()
+            while node is not None and id(node) not in seen:          # a loop higher up in the tree (in the input) does not block
+                if node is child:
+                    return False
+                seen.add(id(node))
+                node = node.dep_parent
+        if self.block_crossing and not self.allow_cross and self._crosses(parent, child):
+            return False
         return True
 
 
@@ -250,8 +274,16 @@ def _single(window: SingleWindow, index: int, test: ContextualTest, rvs: int) ->
 
 
 # -- a whole test (runContextualTest) ---------------------------------------------------------------
-def _dep_candidates(cohort: Cohort, kind: str) -> list:
+def _dep_candidates(cohort: Cohort, kind: str, test=None, window=None) -> list:
     """The cohorts a dependency position leads to: p parent, c children, s siblings, pp ancestors, cc descendants."""
+    if kind == 'r':
+        ids = []
+        for name, targets in cohort.relations.items():
+            if test.relation == '*' or name == test.relation:
+                ids.extend(t for t in targets if t not in ids)
+        by_number = {c.global_number: c for c in window.cohorts}
+        by_number[window.begin.global_number] = window.begin
+        return [by_number[t] for t in ids if t in by_number]
     if kind == 'p':
         return [cohort.dep_parent] if cohort.dep_parent is not None else []
     if kind == 'c':
@@ -279,7 +311,7 @@ def _run_dep_test(window: SingleWindow, position: int, test: ContextualTest) -> 
     cohorts it leads to matches; ALL needs every one to, NONE needs that none does (and holds when there are none)."""
     if position < 0 or position > len(window.cohorts):
         return bool(test.none_) != bool(test.negate)
-    candidates = _dep_candidates(window.virtual(position), test.dep)
+    candidates = _dep_candidates(window.virtual(position), test.dep, test, window)
     matched = good = 0
     for cand in candidates:
         idx = window.index_of(cand)
@@ -300,6 +332,8 @@ def _run_dep_test(window: SingleWindow, position: int, test: ContextualTest) -> 
         retval = bool(candidates) and not good and matched == len(candidates)
     else:
         retval = matched > 0
+        if not candidates and test.not_ and test.linked_test is None:
+            retval = True               # NOT p (*) holds for a cohort that has no parent: there is nothing the set could match
     return (not retval) if test.negate else retval
 
 

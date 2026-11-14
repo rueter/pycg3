@@ -29,6 +29,19 @@ class TestFidelity(unittest.TestCase):
                 failed.append(case["name"])
         self.assertEqual(failed, [], "%d of %d cases differ from vislcg3: %s" % (len(failed), len(cases), failed[:10]))
 
+    def test_traced_cases(self):
+        """Dependencies in the input, relations, FROM, REMPARENT, SWITCHPARENT and merged mappings, with the -t labels."""
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fidelity_cases_traced.json")
+        with open(path, encoding="utf-8") as fh:
+            cases = json.load(fh)
+        failed = []
+        for case in cases:
+            engine = Disambiguator(GrammarParser().parse(case["grammar"]), trace=True)
+            got = engine.run_text(case["input"], trace=True)
+            if lines(got) != lines(case["expected"]):
+                failed.append(case["name"])
+        self.assertEqual(failed, [])
+
 
 if __name__ == "__main__":
     unittest.main()

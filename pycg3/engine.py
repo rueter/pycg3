@@ -10,14 +10,21 @@ from pycg3.stream import parse_stream
 class Disambiguator:
     """Executes a VISL CG-3 grammar over a stream of SingleWindows."""
 
-    def __init__(self, grammar: Grammar, max_iterations: int = 50, trace: bool = False):
+    def __init__(self, grammar: Grammar, max_iterations: int = 50, trace: bool = False,
+                 dep_no_crossing: bool = False, dep_allow_loops: bool = False):
         self.grammar = grammar
         grammar.trace_mode = trace          # as with vislcg3 -t, readings that rules hit differently stay apart
+        grammar.dep_block_crossing = dep_no_crossing        # --dep-no-crossing
+        grammar.dep_block_loops = not dep_allow_loops       # --dep-allow-loops
         self.max_iterations = max_iterations
+        self._relation_map: dict = {}         # input ID:n -> cohort, for the R:name:n tags of the input
 
     def run_window(self, window: SingleWindow, num_sections: Optional[int] = None) -> SingleWindow:
         """Run all sections on a single window."""
         window.mark_end()
+        window.resolve_input_dependencies()
+        if getattr(self.grammar, 'has_relations', False):
+            window.resolve_input_relations(self._relation_map)
         # 1. BEFORE-SECTIONS
         for rule in self.grammar.before_sections:
             rule.apply_to_window(window, self.grammar)
@@ -55,7 +62,9 @@ class Disambiguator:
         Memory footprint remains minimal (one window at a time).
         """
         mp = self.grammar.mapping_prefix if self.grammar else '@'
-        for window in parse_stream(stream, delimiters_set=self.grammar.delimiters, mapping_prefix=mp):
+        for window in parse_stream(stream, delimiters_set=self.grammar.delimiters, mapping_prefix=mp,
+                                    has_relations=getattr(self.grammar, 'has_relations', False),
+                                    has_dep=getattr(self.grammar, 'has_dep', False)):
             yield self.run_window(window, num_sections=num_sections)
 
     def run_text(

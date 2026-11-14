@@ -1,0 +1,44 @@
+[
+ {
+  "name": "input_deps",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nSECTION\nADD (@hasparent) (*) (p (*)) ;\nADD (@child) (V) (c (N)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A #1->2\n\"<d1>\"\n\t\"d1\" N #2->4\n\"<d2>\"\n\t\"d2\" N #3->4\n\"<r>\"\n\t\"r\" V #4->0\n\"<f>\"\n\t\"f\" Adv #5->99\n",
+  "expected": "\"<a>\"\n\t\"a\" A @hasparent #1->2 ADD:6\n\"<d1>\"\n\t\"d1\" N @hasparent #2->4 ADD:6\n\"<d2>\"\n\t\"d2\" N @hasparent #3->4 ADD:6\n\"<r>\"\n\t\"r\" V @hasparent @child #4->0 ADD:6 ADD:7\n\"<f>\"\n\t\"f\" Adv #5->5\n"
+ },
+ {
+  "name": "merge_mappings",
+  "grammar": "DELIMITERS = \"<.>\" ;\nSECTION\nMAP (@X) (N) ;\nADD (extra) (V) ;\n",
+  "input": "\"<w>\"\n\t\"w\" N @A @B\n\t\"w\" V @A\n\"<v>\"\n\t\"v\" N\n",
+  "expected": "\"<w>\"\n\t\"w\" N @A @B\n\t\"w\" V @A\n\"<v>\"\n\t\"v\" N @X MAP:3\n"
+ },
+ {
+  "name": "from_reverse",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nSECTION\nSETPARENT (V) FROM (-1 N) ;\nSETCHILD (A) FROM (1 N) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A\n\"<d1>\"\n\t\"d1\" N\n\"<d2>\"\n\t\"d2\" N\n\"<r>\"\n\t\"r\" V\n\"<f>\"\n\t\"f\" Adv\n",
+  "expected": "\"<a>\"\n\t\"a\" A #1->2 SETCHILD:7\n\"<d1>\"\n\t\"d1\" N #2->2\n\"<d2>\"\n\t\"d2\" N #3->4\n\"<r>\"\n\t\"r\" V #4->4 SETPARENT:6\n\"<f>\"\n\t\"f\" Adv #5->5\n"
+ },
+ {
+  "name": "relations",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nSECTION\nADDRELATION (Obj) (N) TO (1 V) ;\nSETRELATION (Mod) (A) TO (1 N) ;\nADDRELATIONS (Subj) (SubjOf) (V) TO (-1* N) ;\nREMRELATION (Obj) (N) TO (1 V) ;\nADD (@hasobj) (*) (r:Obj (*)) ;\nADD (@hasmod) (*) (r:Mod (*)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A\n\"<d1>\"\n\t\"d1\" N\n\"<d2>\"\n\t\"d2\" N\n\"<r>\"\n\t\"r\" V\n\"<f>\"\n\t\"f\" Adv\n",
+  "expected": "\"<a>\"\n\t\"a\" A @hasmod ID:1 R:Mod:2 SETRELATION(Mod):7 ADD:11\n\"<d1>\"\n\t\"d1\" N ID:2\n\"<d2>\"\n\t\"d2\" N ID:3 R:SubjOf:4 ADDRELATION(Obj):6 REMRELATION(Obj):9\n\"<r>\"\n\t\"r\" V ID:4 R:Subj:3 ADDRELATIONS(Subj,SubjOf):8\n\"<f>\"\n\t\"f\" Adv\n"
+ },
+ {
+  "name": "rel_input",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nSECTION\nADDRELATION (Mod) (A) TO (1 N) ;\nADD (@hasobj) (*) (r:Obj (*)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A ID:1 R:Obj:2\n\"<d1>\"\n\t\"d1\" N ID:2\n\"<d2>\"\n\t\"d2\" N ID:3\n\"<r>\"\n\t\"r\" V ID:4 R:Obj:1\n\"<f>\"\n\t\"f\" Adv ID:5\n",
+  "expected": "\"<a>\"\n\t\"a\" A @hasobj ID:1 R:Mod:2 R:Obj:2 ADDRELATION(Mod):6 ADD:7\n\"<d1>\"\n\t\"d1\" N ID:2\n\"<d2>\"\n\t\"d2\" N ID:3\n\"<r>\"\n\t\"r\" V @hasobj ID:4 R:Obj:1 ADD:7\n\"<f>\"\n\t\"f\" Adv ID:5\n"
+ },
+ {
+  "name": "remparent_switch",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nSECTION\nREMPARENT (A) ;\nSWITCHPARENT WITHCHILD (*) - (A) (V) IF (p (N)) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A #1->2\n\"<d1>\"\n\t\"d1\" N #2->3\n\"<d2>\"\n\t\"d2\" N #3->0\n\"<r>\"\n\t\"r\" V #4->3\n\"<f>\"\n\t\"f\" Adv #5->3\n",
+  "expected": "\"<a>\"\n\t\"a\" A #1->1 REMPARENT:6\n\"<d1>\"\n\t\"d1\" N #2->4\n\"<d2>\"\n\t\"d2\" N #3->4\n\"<r>\"\n\t\"r\" V #4->0 SWITCHPARENT:7\n\"<f>\"\n\t\"f\" Adv #5->4\n"
+ },
+ {
+  "name": "no_deps_passthrough",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nSECTION\nADD (x) (V) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A #1->2\n\"<d1>\"\n\t\"d1\" N #2->4\n\"<d2>\"\n\t\"d2\" N #3->4\n\"<r>\"\n\t\"r\" V #4->0\n\"<f>\"\n\t\"f\" Adv #5->4\n",
+  "expected": "\"<a>\"\n\t\"a\" A #1->2\n\"<d1>\"\n\t\"d1\" N #2->4\n\"<d2>\"\n\t\"d2\" N #3->4\n\"<r>\"\n\t\"r\" V #4->0 x ADD:6\n\"<f>\"\n\t\"f\" Adv #5->4\n"
+ }
+]

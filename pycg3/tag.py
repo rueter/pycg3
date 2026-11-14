@@ -80,6 +80,41 @@ def get_compiled_regex(pattern: str, flags: int = 0) -> re.Pattern:
     return re.compile(_expand_unicode_properties(pattern), flags)
 
 
+CG3_HASH_SEED = 705577479
+
+
+def cg3_hash(text: str) -> int:
+    """vislcg3's hash of a tag (Paul Hsieh's SuperFastHash over the UTF-16 units, seeded). It decides the order in which
+    vislcg3 prints the relations of a cohort, which are kept sorted by the hash of their name."""
+    data = text.encode('utf-16-le')
+    units = [data[i] | (data[i + 1] << 8) for i in range(0, len(data), 2)]
+    if not units:
+        return 0
+    mask = 0xFFFFFFFF
+    h = CG3_HASH_SEED
+    n = len(units)
+    i = 0
+    for _ in range(n >> 1):
+        h = (h + units[i]) & mask
+        tmp = ((units[i + 1] << 11) ^ h) & mask
+        h = ((h << 16) ^ tmp) & mask
+        i += 2
+        h = (h + (h >> 11)) & mask
+    if n & 1:
+        h = (h + units[i]) & mask
+        h ^= (h << 11) & mask
+        h = (h + (h >> 17)) & mask
+    h ^= (h << 3) & mask
+    h = (h + (h >> 5)) & mask
+    h ^= (h << 4) & mask
+    h = (h + (h >> 17)) & mask
+    h ^= (h << 25) & mask
+    h = (h + (h >> 6)) & mask
+    if h in (0, mask, mask - 1):
+        h = CG3_HASH_SEED
+    return h
+
+
 def is_wordform(tag: str) -> bool:
     """Returns True if the tag is a wordform like \"<word>\"."""
     return tag.startswith('"<') and tag.endswith('>"')

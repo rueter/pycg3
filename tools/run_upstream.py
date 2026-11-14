@@ -22,11 +22,19 @@ from pycg3.engine import Disambiguator
 
 def run(path):
     args = open(os.path.join(path, "args.txt")).read().strip() if os.path.exists(os.path.join(path, "args.txt")) else ""
+    words = args.split()
+    trace = "-t" in words
+    sections = None
+    if "--sections" in words:
+        value = words[words.index("--sections") + 1]
+        sections = int(value) if value.isdigit() else None
     with open(os.path.join(path, "grammar.cg3"), encoding="utf-8") as fh:
-        engine = Disambiguator(GrammarParser().parse(fh.read()))
+        engine = Disambiguator(GrammarParser().parse(fh.read()), trace=trace,
+                               dep_no_crossing="--dep-no-crossing" in words, dep_allow_loops="--dep-allow-loops" in words)
     with open(os.path.join(path, "input.txt"), encoding="utf-8") as fh:
-        got = "".join(w.to_text(trace=("-t" in args.split()), pipe_deleted=("-t" in args.split()) or ("-p" in args.split())) + "\n"
-                      for w in engine.run_stream(fh))
+        windows = list(engine.run_stream(fh, num_sections=sections))
+    deps = any(w.has_dep for w in windows)
+    got = "".join(w.to_text(trace=trace, pipe_deleted=trace or ("-p" in words), deps=deps) + "\n" for w in windows)
     want = open(os.path.join(path, "expected.txt"), encoding="utf-8").read()
     norm = lambda t: [l.rstrip() for l in t.split("\n") if l.strip()]
     return args, norm(want), norm(got)
