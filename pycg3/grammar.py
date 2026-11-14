@@ -73,7 +73,7 @@ def tokenize(text: str) -> List[Tuple[str, int]]:
                     j = text.find('/', j + 1)
                 j += 1
             while j < n and not text[j].isspace() and text[j] not in '();':
-                j += 1
+                j += 2 if text[j] == '\\' and j + 1 < n and text[j + 1] in '();\\' else 1
             tokens.append((text[i:j], line))
             i = j
     return tokens

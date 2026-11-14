@@ -208,6 +208,20 @@ class TestRules(unittest.TestCase):
         res = self._run(head + 'REMOVE (@X) ;\n', inp)         # a target that matches no mapping tag leaves them together
         self.assertIn('"a" CC @CVP @CNP', res)
 
+    def test_backslash_in_a_plain_tag_means_the_next_character(self):
+        # GiellaLT writes LIST WORD = N V \? ; and \# \; \( \) for tags that are special in a grammar file
+        g = 'DELIMITERS = "<$.>" ;\nLIST W = N \\? \\# \\( \\; ;\nSECTION\nADD (HIT) W ;\n'
+        res = self._run(g, '"<a>"\n\t"a" ?\n"<b>"\n\t"b" #\n"<c>"\n\t"c" (\n"<d>"\n\t"d" ;\n"<e>"\n\t"e" V\n')
+        for word, tag in (('a', '?'), ('b', '#'), ('c', '('), ('d', ';')):
+            self.assertIn('"%s" %s HIT' % (word, tag), res)
+        self.assertNotIn('"e" V HIT', res)
+
+    def test_backslash_in_a_regex_is_left_for_the_regex(self):
+        g = 'DELIMITERS = "<$.>" ;\nLIST R = /^a\\.b$/r ;\nSECTION\nADD (HIT) R ;\n'
+        res = self._run(g, '"<a>"\n\t"x" a.b\n"<b>"\n\t"y" aXb\n')
+        self.assertIn('"x" a.b HIT', res)
+        self.assertNotIn('HIT', res.split('"<b>"')[1])
+
 
 if __name__ == '__main__':
     unittest.main()

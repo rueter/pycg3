@@ -8,6 +8,26 @@ _WEIGHT_RE = re.compile(r'^<W:(-?[0-9]+(?:\.[0-9]+)?)>$')
 _PROP_RE = re.compile(r'\\{1,2}([pP])\{(\^?)([A-Za-z_]+)\}')
 
 
+_ESCAPED_RE = re.compile(r'\\(.)', re.S)
+_ESCAPED_NOT_QUOTE_RE = re.compile(r'\\([^"\\])', re.S)
+
+
+def unescape_tag(raw: str) -> str:
+    """vislcg3 reads a backslash in a plain tag as 'the next character, as it is': \\? is the tag ?, \\# is #, \\; is ;.
+    Regexes (/../, r"..", "..."r) keep their backslashes for the regex engine; in a quoted tag \\" and \\\\ stay."""
+    if '\\' not in raw:
+        return raw
+    if raw.startswith(('/', '~/', 'r"', "r'")):
+        return raw
+    bare = raw[1:] if raw.startswith('!') else raw
+    if bare.startswith('"'):
+        last = bare.rfind('"')
+        if last > 0 and 'r' in bare[last + 1:].lower():
+            return raw
+        return _ESCAPED_NOT_QUOTE_RE.sub(r'\1', raw)
+    return _ESCAPED_RE.sub(r'\1', raw)
+
+
 @lru_cache(maxsize=64)
 def _category_ranges(category: str) -> str:
     """The code points of a Unicode general category ('Lu') or a group of them ('L') as the inside of a [...] class."""
@@ -98,6 +118,7 @@ class TagPattern:
     )
 
     def __init__(self, raw: str):
+        raw = unescape_tag(raw)
         self.raw = raw
         self.is_any = (raw == '*' or raw == '(*)')
         self.is_failfast = raw.startswith('!') and len(raw) > 1
