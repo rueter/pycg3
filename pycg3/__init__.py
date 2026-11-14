@@ -1,6 +1,6 @@
 """pycg3 - A pure Python implementation of VISL CG-3 (Constraint Grammar 3)."""
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 from pycg3.tag import TagPattern, is_wordform, is_baseform
 from pycg3.cohort import Cohort, Reading, SingleWindow

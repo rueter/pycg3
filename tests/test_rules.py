@@ -234,6 +234,17 @@ class TestRules(unittest.TestCase):
         self.assertEqual(sum('Nom' in l for l in lines), 1)
         self.assertEqual(len([l for l in lines if l.startswith('"b"')]), 1)
 
+    def test_context_slash_star_looks_at_the_reading_and_all_its_sub_readings(self):
+        # checked against vislcg3 1.7.0: 0/* is true if any reading of the cohort has the tag on itself or any sub-reading
+        g = 'DELIMITERS = "<$.>" ;\nSUBREADINGS = LTR ;\nLIST ATTR = Cmp/Attr ;\nLIST NOM = Cmp/SgNom ;\nSECTION\n' \
+            'REMOVE SUB:1 NOM (0/* ATTR) ;\n'
+        inp = ('"<x>"\n\t"h" N Sg Nom Cmp/Attr\n\t\t"p" N Cmp/SgNom\n\t"h" N Sg Gen\n\t\t"p" N Cmp/SgNom\n'
+               '\t"h" N Sg Ill\n\t\t"p" N Cmp/Other\n')
+        res = self._run(g, inp)
+        self.assertIn('"h" N Sg Ill', res)
+        self.assertNotIn('Sg Nom', res)
+        self.assertNotIn('Sg Gen', res)
+
 
 if __name__ == '__main__':
     unittest.main()

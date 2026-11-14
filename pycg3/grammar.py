@@ -28,7 +28,7 @@ RULE_FLAGS = {
 # '^' is the fail-fast difference: in vislcg3 (1.7) it matches exactly what '-' matches, on lists and on sets alike
 SET_OPS = {'+': 'and', '-': 'minus', '^': 'minus', '\\': 'tdiff', '∆': 'tsym', '∩': 'tand'}
 # digits are optional: (* X) and (-* X) are both 0*, the scan in both directions
-POSITION_RE = re.compile(r'^(@?)(\**)(-?)(\d*)(\**)([A-Za-z]*)(?:/(-?\d+))?$')
+POSITION_RE = re.compile(r'^(@?)(\**)(-?)(\d*)(\**)([A-Za-z]*)(?:/(-?\d+|\*))?$')
 SUB_FLAG_RE = re.compile(r'^SUB:(-?\d+)$', re.I)
 
 
@@ -474,7 +474,7 @@ class GrammarParser:
             flags = m.group(6)
             careful, self_, no_barrier = 'C' in flags, 'S' in flags, 'N' in flags
             if m.group(7) is not None:
-                sub = int(m.group(7))
+                sub = '*' if m.group(7) == '*' else int(m.group(7))     # /* : the reading or any of its sub-readings
             if 'self-no-barrier' in self.grammar.options and self_:
                 no_barrier = not no_barrier
 

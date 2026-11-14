@@ -4,6 +4,7 @@ from typing import List, Optional, Any, Tuple
 from pycg3.cohort import Cohort, Reading, SingleWindow
 from pycg3.context import ContextualTest
 from pycg3.set_def import SetDefinition, CompositeTag, _is_literal
+from pycg3.tag import is_baseform
 
 
 class Rule:
@@ -282,9 +283,16 @@ class Rule:
                 continue
             first = hits[0]
             out = []
+            # a base form in the new list ("lemma" Tag ...) is the reading's base form, not one more tag
+            plain = []
+            for x in new:
+                if is_baseform(x):
+                    r.baseform = x
+                else:
+                    plain.append(x)
             for k, tag in enumerate(r.tags):
                 if k == first:
-                    out.extend(new)
+                    out.extend(plain)
                 if k not in hits:
                     out.append(tag)
             r.tags = out

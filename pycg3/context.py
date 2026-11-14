@@ -87,9 +87,17 @@ def _test_linked(window: SingleWindow, index: int, ctx: _Ctx) -> bool:
 def _helper(window, index, reading, target: SetDefinition, ctx: Optional[_Ctx]) -> bool:
     """doesSetMatchCohort_helper"""
     ret = False
+    any_sub = False
     if ctx is not None and ctx.test is not None and ctx.test.sub is not None and not ctx.in_barrier:
-        reading = reading.sub_reading(ctx.test.sub) if hasattr(reading, 'sub_reading') else reading
-    if reading is not None and target.matches_reading(reading):
+        if ctx.test.sub == '*':
+            any_sub = reading is not None and hasattr(reading, 'sub_chain')
+        elif hasattr(reading, 'sub_reading'):
+            reading = reading.sub_reading(ctx.test.sub)
+    if any_sub:
+        hit = target.matches_reading(reading) or any(target.matches_reading(r) for r in reading.sub_chain())
+    else:
+        hit = reading is not None and target.matches_reading(reading)
+    if hit:
         ret = True
         if ctx is not None:
             ctx.matched_target = True
