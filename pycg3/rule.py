@@ -12,7 +12,7 @@ class Rule:
     __slots__ = (
         'type', 'name', 'label', 'line_number', 'target', 'target_modifiers', 'context_tests',
         'action_tags', 'subst_old', 'subst_old_tag', 'wordform_filter', 'direction', 'flags', 'is_careful',
-        'uses_unify', 'sub', '_maps',
+        'uses_unify', 'sub', '_maps', 'copy_except',
     )
 
     def __init__(self, rule_type: str, target: Any, name: str = "", line_number: int = 0,
@@ -37,6 +37,7 @@ class Rule:
         self.uses_unify = False
         self._maps = None
         self.sub = None             # SUB:n - the target set is matched against the n-th sub-reading
+        self.copy_except = None     # COPY (tags) EXCEPT set TARGET ... - the copy leaves out the tags in this set
 
     @property
     def iterates(self) -> bool:
@@ -188,6 +189,12 @@ class Rule:
         if t == 'COPY':
             for r in targets:
                 nr = r.clone(parent_cohort=cohort)
+                if self.copy_except is not None:
+                    keep = [t for t in nr.tags
+                            if not self.copy_except.matches_reading(Reading(baseform=nr.baseform, tags=[t]))]
+                    nr.tags = keep
+                    nr._tag_set = set(keep)
+                    nr.mapping_tags = {t for t in keep if t.startswith(mp)}
                 for tag in self.action_tags:
                     nr.add_tag(tag, mapping_prefix=mp)
                 nr.trace.append(self.label)

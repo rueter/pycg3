@@ -358,6 +358,13 @@ class GrammarParser:
             direction = words[i].upper()
             i += 1
 
+        copy_except = None
+        if rtype == 'COPY' and i < len(words) and words[i].upper() == 'EXCEPT':
+            j = i + 1
+            while j < len(words) and words[j].upper() not in ('TARGET', 'IF'):
+                j = group_at(j)[1] if words[j] == '(' else j + 1
+            copy_except = self._set_expression("", stmt[i + 1:j], line)
+            i = j
         if i < len(words) and words[i].upper() == 'TARGET':
             i += 1
         # the target is one set expression: operands joined by OR / + / - ...; what follows is IF and the
@@ -388,6 +395,7 @@ class GrammarParser:
         rule.direction = direction
         rule.flags = flags
         rule.sub = sub
+        rule.copy_except = copy_except
         rule.uses_unify = self._unify_seen
         self._unify_seen = False
         return rule

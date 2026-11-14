@@ -222,6 +222,18 @@ class TestRules(unittest.TestCase):
         self.assertIn('"x" a.b HIT', res)
         self.assertNotIn('HIT', res.split('"<b>"')[1])
 
+    def test_copy_except_leaves_tags_out_of_the_copy_and_keeps_its_own_target(self):
+        # COPY (tags) EXCEPT set TARGET set: the copy lacks the EXCEPT tags, and only the TARGET readings are copied
+        g = 'DELIMITERS = "<$.>" ;\nLIST Adv = Adv ;\nLIST N = N ;\nLIST ADR = Sem/Adr ;\nSECTION\n' \
+            'COPY:c (Nom) EXCEPT Adv TARGET ADR ;\nCOPY:d (Gen) EXCEPT Adv TARGET N ;\n'
+        res = self._run(g, '"<a>"\n\t"a" N Sg Adv\n\t"a" V Sem/Adr Sg\n"<b>"\n\t"b" V Sg\n')
+        lines = [l.strip() for l in res.splitlines()]
+        self.assertIn('"a" N Sg Adv', lines)
+        self.assertIn('"a" N Sg Gen', lines)           # copied without Adv
+        self.assertIn('"a" V Sem/Adr Sg Nom', lines)    # only the Sem/Adr reading got the Nom copy
+        self.assertEqual(sum('Nom' in l for l in lines), 1)
+        self.assertEqual(len([l for l in lines if l.startswith('"b"')]), 1)
+
 
 if __name__ == '__main__':
     unittest.main()
