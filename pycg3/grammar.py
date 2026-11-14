@@ -15,7 +15,9 @@ SECTION_KEYWORDS = {
 RULE_KEYWORDS = {
     'SELECT', 'REMOVE', 'IFF', 'ADD', 'MAP', 'UNMAP', 'REPLACE', 'SUBSTITUTE', 'APPEND', 'COPY',
     'ADDCOHORT', 'REMCOHORT', 'MOVE', 'SWITCH', 'SETVARIABLE', 'REMVARIABLE', 'EXECUTE', 'JUMP',
+    'SETPARENT', 'SETCHILD',
 }
+DEP_RULES = {'SETPARENT', 'SETCHILD'}      # attach to the cohort the TO tests lead to
 # rule types that take their tags before the target set
 ONE_ACTION = {'ADD', 'MAP', 'REPLACE', 'APPEND', 'COPY', 'ADDCOHORT', 'SETVARIABLE', 'REMVARIABLE'}
 RULE_FLAGS = {
@@ -373,7 +375,8 @@ class GrammarParser:
         while True:
             if j < len(words) and words[j] == '(':
                 j = group_at(j)[1]
-            elif j < len(words) and words[j].upper() not in ('IF', 'EXCEPT'):
+            elif j < len(words) and words[j].upper() not in (('IF', 'EXCEPT', 'TO', 'FROM') if rtype in DEP_RULES
+                                                              else ('IF', 'EXCEPT')):
                 j += 1
             else:
                 break
@@ -383,15 +386,20 @@ class GrammarParser:
             break
         target = self._set_expression("", stmt[i:j], line) if j > i else self._group_to_set(['*'], line)
         tests: List[ContextualTest] = []
+        dep_tests: List[ContextualTest] = []        # SETPARENT / SETCHILD ... TO (tests): where to attach
         k = j + 1 if j < len(words) and words[j].upper() == 'IF' else j
+        into = tests
         while k < len(words):
             if words[k] == '(':
                 inner, k = group_at(k)
-                tests.append(self._context_test(inner, line))
+                into.append(self._context_test(inner, line))
             else:
+                if rtype in DEP_RULES and words[k].upper() in ('TO', 'FROM'):
+                    into = dep_tests
                 k += 1
         rule = Rule(rule_type=rtype, target=target, name=name, line_number=line, context_tests=tests,
                     action_tags=action_tags, subst_old=subst_old)
+        rule.dep_tests = dep_tests
         rule.direction = direction
         rule.flags = flags
         rule.sub = sub
@@ -464,6 +472,7 @@ class GrammarParser:
         i += 1
         offset, scan_first, scan_all, careful, absolute, self_, no_barrier = 0, False, False, False, False, False, False
         sub = None                  # (0/1 ...): look at sub-reading 1 of each reading of the cohort
+        dep, attach = None, False   # (p ...) (c ...) (s ...): dependency positions; A: attach here
         m = POSITION_RE.match(pos)
         if m:
             absolute = bool(m.group(1))
@@ -473,6 +482,11 @@ class GrammarParser:
             scan_all, scan_first = stars >= 2, stars == 1
             flags = m.group(6)
             careful, self_, no_barrier = 'C' in flags, 'S' in flags, 'N' in flags
+            attach = 'A' in flags
+            for letters in ('pp', 'cc', 'p', 'c', 's'):          # p parent, c child, s sibling, pp ancestors, cc descendants
+                if letters in flags:
+                    dep = letters
+                    break
             if m.group(7) is not None:
                 sub = '*' if m.group(7) == '*' else int(m.group(7))     # /* : the reading or any of its sub-readings
             if 'self-no-barrier' in self.grammar.options and self_:
@@ -513,4 +527,4 @@ class GrammarParser:
         return ContextualTest(target=target, offset=offset, scan_first=scan_first, scan_all=scan_all, careful=careful,
                               not_=is_not, negate=is_negate, absolute=absolute, self_=self_, no_barrier=no_barrier,
                               all_=all_, none_=none_, barrier=barrier, cbarrier=cbarrier, linked_test=linked,
-                              raw_pos=pos, sub=sub)
+                              raw_pos=pos, sub=sub, dep=dep, attach=attach)

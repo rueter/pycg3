@@ -174,8 +174,15 @@ python3 tools/make_fidelity_cases.py                        # rebuild tests/fide
 
 `tests/test_fidelity.py` replays 147 small cases that were run through the real `vislcg3`.
 
-**Not implemented** (they fail on the CG-3 project's own tests, `tools/run_upstream.py`): dependency and relation
-rules (`SETPARENT`, `SETRELATION`, `#1->2`, `p`/`c`/`s` positions), templates, `WITH`, `MOVE`/`SWITCH`/`SPLITCOHORT`/
+**Dependencies.** `SETPARENT` and `SETCHILD` work: `SETPARENT:name TARGET [IF ...] TO (tests)`, with the `A` flag
+(`(**1A X LINK p (>>>))`) for the cohort to attach to, `@0` for the root, the positions `p` `c` `s` `pp` `cc`
+with `NONE`/`ALL`, `ALLOWLOOP`, and `$$Sets` shared between the target and the `TO` tests. The output carries `#self->parent`
+on every reading once a rule has attached anything. As in vislcg3 a later rule replaces an earlier attachment, a cohort
+is never its own parent and never a descendant's child, and a scan goes on past a cohort that would make a loop.
+On the GiellaLT Southern Sámi grammar, `dependency.cg3` agrees with vislcg3 on 27,251 of 27,252 cohorts, on North Sámi on all 2,797.
+
+**Not implemented** (they fail on the CG-3 project's own tests, `tools/run_upstream.py`): relation rules (`SETRELATION`,
+`ADDRELATION`), reading dependencies already present in the input (`#1->2`), templates, `WITH`, `MOVE`/`SWITCH`/`SPLITCOHORT`/
 `MERGECOHORTS`, enclosures/parentheses, `MARK`/`ATTACH`/jumps, regex captures (`$1`) and varstrings, `--unique-tags`,
 `-e`, `--sections` ranges, JSON/binary I/O and multi-window spans. `disambiguator.bin` (a compiled `CG3B` grammar) cannot
 be read; use the `.cg3` source.

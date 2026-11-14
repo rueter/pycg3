@@ -245,6 +245,58 @@ class TestRules(unittest.TestCase):
         self.assertNotIn('Sg Nom', res)
         self.assertNotIn('Sg Gen', res)
 
+    # -- dependency rules: every expectation below was checked against vislcg3 1.7.0 --------------------------------
+    DEPHEAD = ('DELIMITERS = "<.>" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST ADV = Adv ;\n'
+               'LIST BOS = (>>>) ;\nSECTION\n')
+
+    def _deps(self, rules, words):
+        """'1>2 2>2 ...': each cohort's #self->parent (the first reading), from a sentence of (form, tag) pairs."""
+        inp = ''.join('"<%s>"\n\t"%s" %s\n' % (w, w, t) for w, t in words)
+        res = self._run(self.DEPHEAD + rules, inp)
+        out = []
+        for ln in res.splitlines():
+            if ln.startswith('\t"'):
+                m = __import__('re').search(r' #(\d+)->(\d+)', ln)
+                out.append('%s>%s' % m.groups() if m else '-')
+        return ' '.join(out)
+
+    SENT = [('a', 'A'), ('d1', 'N'), ('d2', 'N'), ('r', 'V'), ('f', 'Adv')]
+
+    def test_setparent_attaches_and_a_later_rule_replaces_an_attachment(self):
+        self.assertEqual(self._deps('SETPARENT (A) TO (1 N) ;', self.SENT), '1>2 2>2 3>3 4>4 5>5')
+        self.assertEqual(self._deps('SETPARENT (A) TO (1 N) ;\nSETPARENT (A) TO (3 V) ;', self.SENT), '1>4 2>2 3>3 4>4 5>5')
+        self.assertEqual(self._deps('SETPARENT (A) TO (1 N) ;\nSETPARENT (A) (NONE p (*)) TO (3 V) ;', self.SENT),
+                         '1>2 2>2 3>3 4>4 5>5')       # NONE p: only a cohort that has no parent yet
+
+    def test_setparent_never_attaches_to_itself_or_makes_a_loop_and_a_scan_goes_on(self):
+        n4 = [('n1', 'N'), ('n2', 'N'), ('n3', 'N'), ('n4', 'N')]
+        self.assertEqual(self._deps('SETPARENT (N) TO (0 N) ;', n4), '1>1 2>2 3>3 4>4')      # a cohort is not its own parent
+        self.assertEqual(self._deps('SETPARENT (N) TO (1 V) ;', n4), '- - - -')       # nothing led anywhere: no #n->m at all
+        rules = 'SETPARENT ("<n3>") TO (-1 N) ;\nSETPARENT ("<n2>") TO (*1 N) ;'    # n3 is n2's child, so n2 goes to n4
+        self.assertEqual(self._deps(rules, n4), '1>1 2>4 3>2 4>4')
+
+    def test_setparent_root_and_the_attach_flag(self):
+        self.assertEqual(self._deps('SETPARENT (V) TO (@0 (*)) ;', self.SENT), '1>1 2>2 3>3 4>0 5>5')
+        link = 'SETPARENT (V) TO (-1 N LINK -1 N LINK -1%s A) ;'
+        self.assertEqual(self._deps(link % '', self.SENT), '1>1 2>2 3>3 4>1 5>5')       # the last cohort of the chain
+        self.assertEqual(self._deps('SETPARENT (V) TO (-1A N LINK -1 N LINK -1 A) ;', self.SENT), '1>1 2>2 3>3 4>3 5>5')
+
+    def test_setparent_dependency_positions_and_extra_to_tests(self):
+        rules = 'SETPARENT (A) TO (1 N) ;\nSETPARENT (V) TO (-2 N LINK c (A) LINK p (N)) ;'
+        self.assertEqual(self._deps(rules, self.SENT), '1>2 2>2 3>3 4>2 5>5')          # c child, p parent
+        self.assertEqual(self._deps('SETPARENT (N) TO (*1 V)(-1 N) ;', self.SENT), '1>1 2>4 3>4 4>4 5>5')   # (-1 N) from the V
+
+    def test_dependencies_are_printed_on_every_window_once_a_rule_attached_something(self):
+        words = [('x', 'Adv'), ('y', 'Adv'), ('.', 'CLB')] + self.SENT
+        self.assertEqual(self._deps('SETPARENT (A) TO (1 N) ;', words), '1>1 2>2 3>3 1>2 2>2 3>3 4>4 5>5')
+
+    def test_setparent_binds_a_unify_set_on_the_first_reading_that_matches_the_target(self):
+        g = 'DELIMITERS = "<$.>" ;\nLIST F = ta tb ;\nSECTION\nSETPARENT $$F TO (-1 $$F) ;\n'
+        first_ta = '"<x>"\n\t"x" N tb\n"<y>"\n\t"y" N ta\n\t"y" N tb\n'
+        first_tb = '"<x>"\n\t"x" N tb\n"<y>"\n\t"y" N tb\n\t"y" N ta\n'
+        self.assertNotIn('#', self._run(g, first_ta))          # ta binds first; x has no ta: no attachment
+        self.assertIn('#2->1', self._run(g, first_tb))
+
 
 if __name__ == '__main__':
     unittest.main()

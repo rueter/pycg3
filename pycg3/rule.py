@@ -13,7 +13,7 @@ class Rule:
     __slots__ = (
         'type', 'name', 'label', 'line_number', 'target', 'target_modifiers', 'context_tests',
         'action_tags', 'subst_old', 'subst_old_tag', 'wordform_filter', 'direction', 'flags', 'is_careful',
-        'uses_unify', 'sub', '_maps', 'copy_except',
+        'uses_unify', 'sub', '_maps', 'copy_except', 'dep_tests',
     )
 
     def __init__(self, rule_type: str, target: Any, name: str = "", line_number: int = 0,
@@ -39,6 +39,7 @@ class Rule:
         self._maps = None
         self.sub = None             # SUB:n - the target set is matched against the n-th sub-reading
         self.copy_except = None     # COPY (tags) EXCEPT set TARGET ... - the copy leaves out the tags in this set
+        self.dep_tests: List[ContextualTest] = []      # SETPARENT / SETCHILD ... TO (tests)
 
     @property
     def iterates(self) -> bool:
@@ -67,7 +68,13 @@ class Rule:
                 # vislcg3 makes one reading of each mapping tag when a rule's target matches one of them
                 if any(self._target_matches(r) for r in cohort.readings if not r.deleted and len(r.mapping_tags) > 1):
                     cohort.split_mappings(mp)
-            if self.uses_unify:
+            if self.uses_unify and self.type in ('SETPARENT', 'SETCHILD'):
+                targets = [r for r in cohort.readings if not r.deleted]      # _set_dependency binds the $$Sets itself
+                tests_ok = True
+                if not targets:
+                    i += 1
+                    continue
+            elif self.uses_unify:
                 targets, tests_ok = self._unify_targets(window, i, cohort, grammar)
                 if not targets:
                     i += 1
@@ -152,6 +159,8 @@ class Rule:
     def _act(self, window, i, cohort, targets, grammar) -> Tuple[bool, int]:
         t = self.type
         mp = grammar.mapping_prefix if grammar else '@'
+        if t in ('SETPARENT', 'SETCHILD'):
+            return self._set_dependency(window, i, cohort, targets, grammar), 0
         if t == 'SELECT':
             return self._select(cohort, targets), 0
         if t == 'REMOVE':
@@ -216,6 +225,69 @@ class Rule:
                 window.variables.pop(tag, None)
             return True, 0
         return False, 0
+
+    def _set_dependency(self, window, i, cohort, targets, grammar) -> bool:
+        """SETPARENT: the cohort becomes a child of the cohort the TO tests lead to; SETCHILD: the other way round.
+        The cohort it leads to is the one of the test with the A flag, else where the last LINKed test ended;
+        a candidate that would make a loop is skipped (the scan goes on), and an earlier attachment is replaced."""
+        from pycg3 import set_def
+        if not self.dep_tests:
+            return False
+        as_child = self.type == 'SETPARENT'
+        lead = targets[0] if targets else None      # the reading that gets the label
+        if self.uses_unify:
+            # $$Sets bind on the first reading that matches the target and have to agree in the contexts and the TO
+            # tests as well; vislcg3 does not go on to the next reading with a binding of its own
+            found = None
+            for r in targets:
+                set_def.set_unif({})
+                try:
+                    if not self._target_matches(r):
+                        continue
+                    if all(t.evaluate(window, i, grammar) for t in self.context_tests):
+                        found = self._dep_search(window, i, cohort, grammar)
+                finally:
+                    set_def.set_unif(None)
+                lead = r
+                break
+        else:
+            found = self._dep_search(window, i, cohort, grammar)
+        if found is None:
+            return False
+        other = window.virtual(found)
+        child, parent = (cohort, other) if as_child else (other, cohort)
+        if child.dep_parent is not parent:           # vislcg3 labels the readings even when it attaches to the same parent again
+            if child.dep_parent is not None:
+                child.dep_parent.dep_children.remove(child)
+            child.dep_parent = parent
+            parent.dep_children.append(child)
+            parent.dep_children.sort(key=window.index_of)
+        window.has_dep = True
+        if lead is not None:
+            lead.trace.append(self.label)           # vislcg3 labels the first reading that matched, not all of them
+        return True
+
+    def _dep_search(self, window, i, cohort, grammar):
+        """The index of the cohort the TO tests lead to for the cohort at window index i, or None."""
+        from pycg3 import context
+        state = context.AttachState(window, cohort, as_child=self.type == 'SETPARENT',
+                                    allow_loop='ALLOWLOOP' in self.flags)
+        found = None
+        try:
+            for n, test in enumerate(self.dep_tests):
+                state.marked = state.final = None
+                context.set_attach(state if n == 0 else None)
+                if n == 0:
+                    if not test.evaluate(window, i, grammar):
+                        if state.matched and len(self.dep_tests) == 1:
+                            window.has_dep = True   # led only to cohorts it cannot attach to: vislcg3 still prints dependencies
+                        return None
+                    found = state.final
+                elif found is None or not context._run_contextual_test(window, found, test):
+                    return None                     # TO (a)(b): b is tested from the cohort a led to, and only has to hold
+        finally:
+            context.set_attach(None)
+        return found
 
     def _select(self, cohort: Cohort, targets: List[Reading]) -> bool:
         active = [r for r in cohort.readings if not r.deleted]

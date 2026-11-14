@@ -16,7 +16,8 @@ TRV_BREAK, TRV_BARRIER, TRV_BREAK_DEFAULT = 1, 2, 4
 
 class _Ctx:
     """The dSMC_Context of the C++ code: state shared by the set matches of one cohort test."""
-    __slots__ = ('test', 'not_', 'matched_target', 'matched_tests', 'did_test', 'in_barrier', 'window', 'index')
+    __slots__ = ('test', 'not_', 'matched_target', 'matched_tests', 'did_test', 'in_barrier', 'window', 'index',
+                 'rejected')
 
     def __init__(self, test=None, not_=False, in_barrier=False, window=None, index=0):
         self.test = test
@@ -27,19 +28,24 @@ class _Ctx:
         self.in_barrier = in_barrier
         self.window = window
         self.index = index
+        self.rejected = False       # SETPARENT: the chain failed on a candidate that cannot be attached to
 
 
 class ContextualTest:
     """One contextual test with its barriers and LINKed tests."""
 
     __slots__ = ('target', 'offset', 'scan_first', 'scan_all', 'careful', 'not_', 'negate', 'absolute',
-                 'self_', 'no_barrier', 'all_', 'none_', 'barrier', 'cbarrier', 'linked_test', 'raw_pos', 'ors', 'sub')
+                 'self_', 'no_barrier', 'all_', 'none_', 'barrier', 'cbarrier', 'linked_test', 'raw_pos', 'ors', 'sub',
+                 'dep', 'attach')
 
     def __init__(self, target: SetDefinition, offset: int = 0, scan_first: bool = False, scan_all: bool = False,
                  careful: bool = False, not_: bool = False, negate: bool = False, absolute: bool = False,
                  self_: bool = False, no_barrier: bool = False, all_: bool = False, none_: bool = False,
                  barrier: Optional[SetDefinition] = None, cbarrier: Optional[SetDefinition] = None,
-                 linked_test: Optional['ContextualTest'] = None, raw_pos: str = "", sub: Optional[int] = None):
+                 linked_test: Optional['ContextualTest'] = None, raw_pos: str = "", sub: Optional[int] = None,
+                 dep: Optional[str] = None, attach: bool = False):
+        self.dep = dep              # p parent, c children, s siblings, pp ancestors, cc descendants (dependency tests)
+        self.attach = attach        # the A flag: this test's cohort is the one a SETPARENT / SETCHILD attaches to
         self.target = target
         self.offset = offset
         self.scan_first = scan_first
@@ -77,11 +83,60 @@ def _test_linked(window: SingleWindow, index: int, ctx: _Ctx) -> bool:
     """doesSetMatchCohort_testLinked"""
     linked = ctx.test.linked_test if ctx.test is not None else None
     if linked is None:
+        att = _ATTACH
+        if att is not None and ctx.test is not None and not ctx.in_barrier:
+            # the end of the chain: the cohort to attach to must be a possible one, or the scan goes on
+            cand = att.marked if att.marked is not None else index
+            att.matched = True
+            if not att.valid(cand):
+                att.rejections += 1
+                return False
+            att.final = cand
         return True
     if not ctx.did_test:
         ctx.matched_tests = _run_contextual_test(window, index, linked)
         ctx.did_test = True
     return ctx.matched_tests
+
+
+class AttachState:
+    """What a SETPARENT / SETCHILD rule is attaching while its TO tests run: the tests report the cohort to attach
+    to, and a candidate that would make a loop (or is the cohort itself) counts as a test that did not match, so a
+    scan goes on to the next cohort (as in vislcg3)."""
+    __slots__ = ('window', 'cohort', 'as_child', 'allow_loop', 'marked', 'final', 'matched', 'rejections')
+
+    def __init__(self, window, cohort, as_child=True, allow_loop=False):
+        self.window = window
+        self.cohort = cohort          # the cohort the rule is on
+        self.as_child = as_child      # SETPARENT: it becomes the child of the cohort found; SETCHILD: the parent
+        self.allow_loop = allow_loop
+        self.marked: Optional[int] = None     # index of the cohort whose test has the A flag
+        self.final: Optional[int] = None      # index of the cohort the last LINKed test ended on
+        self.matched = False                  # the tests led somewhere, even if only to a cohort that cannot be attached
+        self.rejections = 0                   # how many candidates were turned down as self or loop
+
+    def valid(self, index: int) -> bool:
+        other = self.window.virtual(index)
+        if other is self.cohort:
+            return False
+        if self.allow_loop:
+            return True
+        # the child must not be an ancestor of the parent
+        child, parent = (self.cohort, other) if self.as_child else (other, self.cohort)
+        node = parent
+        while node is not None:
+            if node is child:
+                return False
+            node = node.dep_parent
+        return True
+
+
+_ATTACH: Optional[AttachState] = None
+
+
+def set_attach(state: Optional[AttachState]) -> None:
+    global _ATTACH
+    _ATTACH = state
 
 
 def _helper(window, index, reading, target: SetDefinition, ctx: Optional[_Ctx]) -> bool:
@@ -103,8 +158,16 @@ def _helper(window, index, reading, target: SetDefinition, ctx: Optional[_Ctx]) 
             ctx.matched_target = True
     if ret and ctx is not None and ctx.not_:
         ret = not ret
+    att = _ATTACH
+    live = att is not None and ctx is not None and ctx.test is not None and not ctx.in_barrier
+    if ret and live and ctx.test.attach:
+        att.marked = index
     if ret and ctx is not None and not ctx.in_barrier:
+        before = att.rejections if live else 0
         ret = _test_linked(window, index, ctx)
+        if not ret and live and (att.rejections != before or ctx.rejected):
+            ctx.matched_target = False          # a chain that failed on a cohort that cannot be attached to does not stop a scan
+            ctx.rejected = True                 # (the other readings of the cohort reuse the answer of the first one)
     return ret
 
 
@@ -187,10 +250,65 @@ def _single(window: SingleWindow, index: int, test: ContextualTest, rvs: int) ->
 
 
 # -- a whole test (runContextualTest) ---------------------------------------------------------------
+def _dep_candidates(cohort: Cohort, kind: str) -> list:
+    """The cohorts a dependency position leads to: p parent, c children, s siblings, pp ancestors, cc descendants."""
+    if kind == 'p':
+        return [cohort.dep_parent] if cohort.dep_parent is not None else []
+    if kind == 'c':
+        return list(cohort.dep_children)
+    if kind == 's':
+        parent = cohort.dep_parent
+        return [c for c in parent.dep_children if c is not cohort] if parent is not None else []
+    if kind == 'pp':
+        out, node = [], cohort.dep_parent
+        while node is not None and node not in out:
+            out.append(node)
+            node = node.dep_parent
+        return out
+    out, stack = [], list(reversed(cohort.dep_children))          # cc: all descendants
+    while stack:
+        node = stack.pop()
+        if node not in out:
+            out.append(node)
+            stack.extend(reversed(node.dep_children))
+    return out
+
+
+def _run_dep_test(window: SingleWindow, position: int, test: ContextualTest) -> bool:
+    """A test whose position is a dependency one: (p ...) (c ...) (s ...) (pp ...) (cc ...). It holds if any of the
+    cohorts it leads to matches; ALL needs every one to, NONE needs that none does (and holds when there are none)."""
+    if position < 0 or position > len(window.cohorts):
+        return bool(test.none_) != bool(test.negate)
+    candidates = _dep_candidates(window.virtual(position), test.dep)
+    matched = good = 0
+    for cand in candidates:
+        idx = window.index_of(cand)
+        if idx < 0:
+            continue
+        _, ret, _ = _single(window, idx, test, 0)
+        if ret:
+            matched += 1
+            if not (test.all_ or test.none_):
+                break
+        else:
+            good = 1
+            if test.all_:
+                break
+    if test.none_:
+        retval = matched == 0
+    elif test.all_:
+        retval = bool(candidates) and not good and matched == len(candidates)
+    else:
+        retval = matched > 0
+    return (not retval) if test.negate else retval
+
+
 def _run_contextual_test(window: SingleWindow, position: int, test: ContextualTest) -> bool:
     if test.ors:
         found = any(_run_contextual_test(window, position, alt) for alt in test.ors)
         return (not found) if test.negate else found
+    if test.dep:
+        return _run_dep_test(window, position, test)
     size = len(window.cohorts) + 1                     # begin cohort + real cohorts
     retval = True
     if test.absolute:

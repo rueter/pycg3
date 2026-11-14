@@ -140,12 +140,14 @@ class Reading:
             res.append('<<<')
         return res
 
-    def to_text(self, indent: str = "\t", show_rules: bool = False, trace: bool = False) -> str:
+    def to_text(self, indent: str = "\t", show_rules: bool = False, trace: bool = False, dep: str = "") -> str:
         """Format reading as VISL CG-3 text line."""
         parts = []
         if self.baseform:
             parts.append(self.baseform)
         parts.extend(self.tags)
+        if dep:
+            parts.append(dep)           # #self->parent, after the tags and before the rule labels
         line = indent + " ".join(parts)
         if show_rules and self.changed:
             line += " <<<"
@@ -153,7 +155,7 @@ class Reading:
             line += " " + " ".join(self.trace)
         lines = [line]
         for sub in self.sub_readings:
-            lines.append(sub.to_text(indent=indent + "\t", show_rules=show_rules, trace=trace))
+            lines.append(sub.to_text(indent=indent + "\t", show_rules=show_rules, trace=trace, dep=dep))
         return "\n".join(lines)
 
     def clone(self, parent_cohort: Optional['Cohort'] = None) -> 'Reading':
@@ -190,7 +192,9 @@ class Cohort:
         'parent_window',
         'is_end',
         '_wread',
-        '_next_number'
+        '_next_number',
+        'dep_parent',
+        'dep_children'
     )
 
     def __init__(
@@ -214,6 +218,8 @@ class Cohort:
         self._wread = None
         self._next_number = 0
         self.is_end = False          # the last cohort of a window: its readings answer to the tag <<<
+        self.dep_parent: Optional['Cohort'] = None       # set by SETPARENT / SETCHILD; the begin cohort is the root
+        self.dep_children: List['Cohort'] = []
 
     def append_reading(self, reading: Reading):
         """Append a reading to this cohort."""
@@ -303,7 +309,7 @@ class Cohort:
                         self.readings[i] = last
                     break
 
-    def to_text(self, show_rules: bool = False, trace: bool = False, pipe_deleted: bool = False) -> str:
+    def to_text(self, show_rules: bool = False, trace: bool = False, pipe_deleted: bool = False, dep: str = "") -> str:
         """Format cohort into VISL CG-3 stream format."""
         out = []
         if self.text_before:
@@ -313,7 +319,7 @@ class Cohort:
             header += " " + " ".join(self.untouchable_tags)
         out.append(header)
         for r in self.ordered_readings():
-            out.append(r.to_text(show_rules=show_rules, trace=trace))
+            out.append(r.to_text(show_rules=show_rules, trace=trace, dep=dep))
         if pipe_deleted:
             for r in self.deleted_readings:
                 # vislcg3 prints a deleted reading, and each of its sub-reading lines, with a leading ';'
@@ -342,9 +348,10 @@ class Cohort:
 class SingleWindow:
     """Represents a window (sentence / clause) of cohorts."""
 
-    __slots__ = ('cohorts', 'text_after', 'variables', 'flush_after', 'begin')
+    __slots__ = ('cohorts', 'text_after', 'variables', 'flush_after', 'begin', 'has_dep')
 
     def __init__(self, cohorts: Optional[List[Cohort]] = None):
+        self.has_dep = False         # a dependency rule attached something in this window
         self.cohorts: List[Cohort] = list(cohorts) if cohorts is not None else []
         self.text_after: List[str] = []
         self.variables: Dict[str, str] = {}
@@ -376,14 +383,32 @@ class SingleWindow:
         """Cohort at virtual index vi: 0 is the begin cohort, 1..n the real cohorts."""
         return self.begin if vi == 0 else self.cohorts[vi - 1]
 
+    def index_of(self, cohort: Cohort) -> int:
+        """The virtual index of a cohort: 0 for the begin cohort, 1..n for the real ones (vislcg3's dependency numbers)."""
+        if cohort is self.begin:
+            return 0
+        for k, c in enumerate(self.cohorts):
+            if c is cohort:
+                return k + 1
+        return -1
+
     def append_cohort(self, cohort: Cohort):
         cohort.parent_window = self
         self.cohorts.append(cohort)
 
-    def to_text(self, show_rules: bool = False, trace: bool = False, pipe_deleted: bool = False) -> str:
+    def to_text(self, show_rules: bool = False, trace: bool = False, pipe_deleted: bool = False,
+                deps: Optional[bool] = None) -> str:
+        """deps: print #self->parent on every reading (vislcg3 does once a dependency rule has attached anything);
+        None means: if this window has an attachment."""
+        if deps is None:
+            deps = self.has_dep
         lines = []
-        for c in self.cohorts:
-            lines.append(c.to_text(show_rules=show_rules, trace=trace, pipe_deleted=pipe_deleted))
+        for k, c in enumerate(self.cohorts):
+            dep = ""
+            if deps:
+                parent = c.dep_parent
+                dep = "#%d->%d" % (k + 1, self.index_of(parent) if parent is not None else k + 1)
+            lines.append(c.to_text(show_rules=show_rules, trace=trace, pipe_deleted=pipe_deleted, dep=dep))
         if self.text_after:
             lines.extend(self.text_after)
         return "\n".join(lines)

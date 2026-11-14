@@ -69,7 +69,8 @@ class Disambiguator:
         """Run grammar on input string and return formatted output string."""
         import io
         stream = io.StringIO(input_text)
-        out_parts = []
-        for win in self.run_stream(stream, num_sections=num_sections):
-            out_parts.append(win.to_text(show_rules=show_rules, trace=trace, pipe_deleted=pipe_deleted))
+        windows = list(self.run_stream(stream, num_sections=num_sections))
+        deps = any(w.has_dep for w in windows)       # vislcg3 prints #n->m everywhere once anything has been attached
+        out_parts = [w.to_text(show_rules=show_rules, trace=trace, pipe_deleted=pipe_deleted, deps=deps)
+                     for w in windows]
         return "\n".join(out_parts) + ("\n" if out_parts else "")
