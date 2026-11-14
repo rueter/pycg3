@@ -35,7 +35,7 @@ RULE_FLAGS = {
 # '^' is the fail-fast difference: in vislcg3 (1.7) it matches exactly what '-' matches, on lists and on sets alike
 SET_OPS = {'+': 'and', '-': 'minus', '^': 'minus', '\\': 'tdiff', '∆': 'tsym', '∩': 'tand'}
 # digits are optional: (* X) and (-* X) are both 0*, the scan in both directions
-POSITION_RE = re.compile(r'^(@?)(\**)(-?)(\d*)(\**)([A-Za-z]*)(?:/(-?\d+|\*))?$')
+POSITION_RE = re.compile(r'^([@*\-\dA-Za-z<>]*)(?:/(-?\d+|\*))?$')       # vislcg3 takes the characters of a position in any order
 SUB_FLAG_RE = re.compile(r'^SUB:(-?\d+)$', re.I)
 
 
@@ -521,26 +521,29 @@ class GrammarParser:
         offset, scan_first, scan_all, careful, absolute, self_, no_barrier = 0, False, False, False, False, False, False
         sub = None                  # (0/1 ...): look at sub-reading 1 of each reading of the cohort
         dep, attach = None, False   # (p ...) (c ...) (s ...): dependency positions; A: attach here
+        span_left = span_right = span_both = False      # < > W: the test may go into the previous / next / both neighbour windows
         relation = None
         if pos.startswith('r:') and len(pos) > 2:           # r:name - follow the relation `name`
             dep, relation = 'r', pos[2:]
         m = POSITION_RE.match(pos)
         if m:
-            absolute = bool(m.group(1))
-            offset = (-1 if m.group(3) else 1) * int(m.group(4) or 0)
-            before, after = m.group(2), m.group(5)
-            stars = len(before) + len(after)
+            body = m.group(1)
+            absolute = '@' in body
+            digits = re.findall(r'\d+', body)
+            offset = (-1 if '-' in body else 1) * int(digits[0] if digits else 0)
+            stars = body.count('*')
             scan_all, scan_first = stars >= 2, stars == 1
-            flags = m.group(6)
+            flags = re.sub(r'[@*\-\d]', '', body)
             careful, self_, no_barrier = 'C' in flags, 'S' in flags, 'N' in flags
             attach = 'A' in flags
+            span_left, span_right, span_both = '<' in flags, '>' in flags, 'W' in flags
             for letters in ('pp', 'cc', 'p', 'c', 's'):          # p parent, c child, s sibling, pp ancestors, cc descendants
                 if letters in flags:
                     dep = letters
                     self.grammar.has_dep = True
                     break
-            if m.group(7) is not None:
-                sub = '*' if m.group(7) == '*' else int(m.group(7))     # /* : the reading or any of its sub-readings
+            if m.group(2) is not None:
+                sub = '*' if m.group(2) == '*' else int(m.group(2))     # /* : the reading or any of its sub-readings
             if 'self-no-barrier' in self.grammar.options and self_:
                 no_barrier = not no_barrier
 
@@ -579,4 +582,5 @@ class GrammarParser:
         return ContextualTest(target=target, offset=offset, scan_first=scan_first, scan_all=scan_all, careful=careful,
                               not_=is_not, negate=is_negate, absolute=absolute, self_=self_, no_barrier=no_barrier,
                               all_=all_, none_=none_, barrier=barrier, cbarrier=cbarrier, linked_test=linked,
-                              raw_pos=pos, sub=sub, dep=dep, attach=attach, relation=relation)
+                              raw_pos=pos, sub=sub, dep=dep, attach=attach, relation=relation,
+                              span_left=span_left, span_right=span_right, span_both=span_both)

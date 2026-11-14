@@ -116,8 +116,7 @@ class Cg:
         for number, engine in enumerate(self._engines):
             last = number == len(self._engines) - 1
             windows = list(engine.run_stream(io.StringIO(text)))
-            deps = any(w.has_dep for w in windows)       # #n->m on every reading once a dependency rule attached anything
-            text = "".join(w.to_text(trace=self.trace and last, pipe_deleted=False, deps=deps) + "\n" for w in windows)
+            text = "".join(w.to_text(trace=self.trace and last, pipe_deleted=False) + "\n" for w in windows)
         return text
 
     def disambiguate(self, words: Sequence[str], morphologies: Sequence[Sequence[Sequence[Any]]], **options) -> List[Tuple[str, List[CgWord]]]:

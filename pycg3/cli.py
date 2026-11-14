@@ -51,6 +51,17 @@ def main(args=None):
         help="Number of sections to execute."
     )
     parser.add_argument(
+        "--num-windows",
+        type=int,
+        default=2,
+        help="Windows kept behind and read ahead for contextual tests with W < > (default 2)."
+    )
+    parser.add_argument(
+        "--always-span",
+        action="store_true",
+        help="Make scanning tests go across window boundaries whatever their position says."
+    )
+    parser.add_argument(
         "-v", "--version",
         action="version",
         version=f"pycg3 {__version__} (compatible with VISL CG-3)",
@@ -68,7 +79,7 @@ def main(args=None):
         sys.exit(1)
 
     grammar = GrammarParser().parse(grammar_text)
-    engine = Disambiguator(grammar, trace=parsed.trace)
+    engine = Disambiguator(grammar, trace=parsed.trace, num_windows=parsed.num_windows, always_span=parsed.always_span)
 
     # Input stream
     if parsed.input_file:

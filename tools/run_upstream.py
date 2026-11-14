@@ -33,8 +33,7 @@ def run(path):
                                dep_no_crossing="--dep-no-crossing" in words, dep_allow_loops="--dep-allow-loops" in words)
     with open(os.path.join(path, "input.txt"), encoding="utf-8") as fh:
         windows = list(engine.run_stream(fh, num_sections=sections))
-    deps = any(w.has_dep for w in windows)
-    got = "".join(w.to_text(trace=trace, pipe_deleted=trace or ("-p" in words), deps=deps) + "\n" for w in windows)
+    got = "".join(w.to_text(trace=trace, pipe_deleted=trace or ("-p" in words)) + "\n" for w in windows)
     want = open(os.path.join(path, "expected.txt"), encoding="utf-8").read()
     norm = lambda t: [l.rstrip() for l in t.split("\n") if l.strip()]
     return args, norm(want), norm(got)

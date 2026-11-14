@@ -396,7 +396,7 @@ class Cohort:
         for r in merge_mapped_readings(self.ordered_readings(), trace):
             out.append(r.to_text(show_rules=show_rules, trace=trace, dep=dep))
         if pipe_deleted:
-            for r in self.deleted_readings:
+            for r in sorted(self.deleted_readings, key=lambda r: r.number):      # by number, as the readings are
                 # vislcg3 prints a deleted reading, and each of its sub-reading lines, with a leading ';'
                 out.extend(";" + ln for ln in r.to_text(show_rules=show_rules, trace=trace).split("\n"))
         return "\n".join(out)
@@ -423,10 +423,15 @@ class Cohort:
 class SingleWindow:
     """Represents a window (sentence / clause) of cohorts."""
 
-    __slots__ = ('cohorts', 'text_after', 'variables', 'flush_after', 'begin', 'has_dep')
+    __slots__ = ('cohorts', 'text_after', 'variables', 'flush_after', 'begin', 'has_dep', 'previous', 'next', 'number', 'dep_spanned', 'dep_print')
 
     def __init__(self, cohorts: Optional[List[Cohort]] = None):
         self.has_dep = False         # a dependency rule attached something in this window
+        self.number = 0              # 1, 2, 3 ... in the order the windows were read
+        self.dep_print: Optional[bool] = None    # set when the engine hands the window on: were #n->m being written by then?
+        self.dep_spanned = False     # a dependency has gone from one window to another: #<window><cohort>->#<window><cohort>
+        self.previous: Optional['SingleWindow'] = None      # the windows around this one while the engine runs it;
+        self.next: Optional['SingleWindow'] = None          # contextual tests with W < > look into them
         self.cohorts: List[Cohort] = list(cohorts) if cohorts is not None else []
         self.text_after: List[str] = []
         self.variables: Dict[str, str] = {}
@@ -453,6 +458,20 @@ class SingleWindow:
             last.is_end = True
             for r in last.readings:
                 r._match_cache = None
+
+    @property
+    def size(self) -> int:
+        """The number of cohorts vislcg3 sees in the window: the begin cohort and the real ones."""
+        return len(self.cohorts) + 1
+
+    def chain(self):
+        """This window and the ones linked to it, from the first to the last."""
+        w = self
+        while w.previous is not None:
+            w = w.previous
+        while w is not None:
+            yield w
+            w = w.next
 
     def virtual(self, vi: int) -> Cohort:
         """Cohort at virtual index vi: 0 is the begin cohort, 1..n the real cohorts."""
@@ -526,13 +545,21 @@ class SingleWindow:
         """deps: print #self->parent on every reading (vislcg3 does once a dependency rule has attached anything);
         None means: if this window has an attachment."""
         if deps is None:
-            deps = self.has_dep
+            deps = self.dep_print if self.dep_print is not None else self.has_dep
         lines = []
         for k, c in enumerate(self.cohorts):
             dep = ""
             if deps:
                 parent = c.dep_parent
-                dep = "#%d->%d" % (k + 1, self.index_of(parent) if parent is not None else k + 1)
+                if parent is not None and parent.parent_window is not None and parent.parent_window.number < self.number:
+                    parent = None       # that window has been written (and let go of) already: vislcg3 can no longer find the cohort
+                if self.dep_spanned:
+                    # once a dependency spans windows vislcg3 numbers globally: window number, then the place in the window (3 digits)
+                    pw = parent.parent_window if parent is not None and parent.parent_window is not None else self
+                    pk = pw.index_of(parent) if parent is not None else k + 1
+                    dep = "#%d%03d->%d%03d" % (self.number, k + 1, pw.number if parent is not None else self.number, pk)
+                else:
+                    dep = "#%d->%d" % (k + 1, self.index_of(parent) if parent is not None else k + 1)
             rel = c.relation_text()
             if rel:
                 dep = (dep + " " + rel) if dep else rel

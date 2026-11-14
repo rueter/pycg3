@@ -72,9 +72,8 @@ def main():
     py_path = os.path.join(a.work, "pycg3.out")
     with open(a.input, encoding="utf-8") as fh, open(py_path, "w", encoding="utf-8") as out:
         wins = list(engine.run_stream(fh))
-        deps = any(w.has_dep for w in wins)             # vislcg3 prints #n->m everywhere once anything has been attached
         for win in wins:
-            out.write(win.to_text(trace=True, pipe_deleted=True, deps=deps) + "\n")
+            out.write(win.to_text(trace=True, pipe_deleted=True) + "\n")
 
     real = windows(open(real_path, encoding="utf-8").read(), keep_deleted=False)
     py = windows(open(py_path, encoding="utf-8").read(), keep_deleted=False)

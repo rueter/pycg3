@@ -20,6 +20,7 @@ A pure Python implementation of **VISL CG-3 (Constraint Grammar 3)**.
     - Relative positions: `0`, `1`, `-1`, `2`, `-2`
     - Scanning: `*1`, `*-1`, `*0`
     - Absolute positions: `@1`, `@-1`
+    - Neighbouring windows: `W` (either side), `<` (previous), `>` (next), as in `(*1W (X))`, `(@-1< (*))`
     - Modifiers: `C` / `c` (careful/all readings), `NOT` (local target inversion), `NEGATE` (chain inversion)
     - Barriers: `BARRIER`, `CBARRIER`, self-barrier options (`self-no-barrier`)
     - Chaining: `LINK`
@@ -56,6 +57,9 @@ pycg3 -g grammar.cg3 -i input.txt -e
 
 # Include deleted readings in output (; prefix)
 pycg3 -g grammar.cg3 -i input.txt -p
+
+# Windows kept behind and read ahead for tests with W < > (default 2); make every scan cross window edges
+pycg3 -g grammar.cg3 -i input.txt --num-windows 3 --always-span
 ```
 
 ---
@@ -178,8 +182,19 @@ python3 tools/make_fidelity_cases.py                        # rebuild tests/fide
 (`(**1A X LINK p (>>>))`) for the cohort to attach to, `@0` for the root, the positions `p` `c` `s` `pp` `cc`
 with `NONE`/`ALL`, `ALLOWLOOP`, and `$$Sets` shared between the target and the `TO` tests. The output carries `#self->parent`
 on every reading once a rule has attached anything. As in vislcg3 a later rule replaces an earlier attachment, a cohort
-is never its own parent and never a descendant's child, and a scan goes on past a cohort that would make a loop.
-On the GiellaLT Southern Sámi grammar, `dependency.cg3` agrees with vislcg3 on 27,251 of 27,252 cohorts, on North Sámi on all 2,797.
+is never its own parent and never a descendant's child. If the cohort the `TO` test leads to would make a loop, the test is run again
+from that cohort and a cohort seen before ends the search, exactly as vislcg3 does; `SETPARENT SAFE` leaves a cohort that already
+has a parent alone. On the GiellaLT Southern Sámi grammar, `dependency.cg3` agrees with vislcg3 on all 27,252 cohorts, on North Sámi on all 2,797.
+
+**Looking into the neighbouring windows.** A position with `W`, `<` or `>` (`*1W`, `-1<`, `0*W`, `@1>`, `C*1W` ...) may go on
+past the edge of the window into the one before or after it, as in vislcg3: the begin cohort (`>>>`) of the next window is the
+cohort after the last one, the last cohort of the previous window the one before the begin cohort. To make that work the engine
+runs windows the way vislcg3 does: a window is run when two more have been read (and the begin cohort of a fourth is there),
+and two windows already run stay behind it (`Disambiguator(num_windows=2)`, `--num-windows`); a window is handed on once it
+falls out of those. A test only sees what is there: windows ahead are as they were read, windows behind as the rules left them.
+`always_span=True` (`--always-span`) lets every scan cross window edges. A dependency may attach across windows; from then on
+vislcg3 numbers the output globally (`#1001->2003`: window, then place in the window) and a parent in a window that has
+already been written is printed as no parent, as vislcg3 does. Relations (`ID:` / `R:`) reach across windows by cohort id.
 
 **Relations and dependencies in the input.** `ADDRELATION`, `SETRELATION`, `REMRELATION` and the plural `*RELATIONS`
 rules work, with `TO` and `FROM`, the `r:name` context position (with `ALL` / `NONE`) and `ID:n R:name:m` in the output, in vislcg3's order
@@ -188,12 +203,11 @@ renumbered per window, a parent that does not exist leaves the cohort without on
 work, and `--dep-no-crossing` / `--dep-allow-loops` are the `Disambiguator` options `dep_no_crossing` / `dep_allow_loops`.
 Readings that differ only in their mapping tag are printed as one reading, as vislcg3 does.
 
-On the CG-3 project's own tests (`tools/run_upstream.py`) 19 of the 69 pass, among them `T_Dependency_Loops`, `T_SetParentChild`,
-`T_SwitchParent` and `T_Dependency_OutOfRange`.
+On the CG-3 project's own tests (`tools/run_upstream.py`) 20 of the 69 pass, among them `T_Dependency_Loops`, `T_SetParentChild`,
+`T_SwitchParent`, `T_Dependency_OutOfRange` and `T_Omniscan` (the window-spanning positions).
 
 **Not implemented** (they fail on the CG-3 project's own tests): templates, `WITH`, `MOVE`/`SWITCH`/`SPLITCOHORT`/`MERGECOHORTS`/`COPYCOHORT`,
-enclosures/parentheses, `MARK`/`ATTACH`/jumps, regex captures (`$1`) and varstrings, multi-window spans (`W`, `<`, `>` in positions),
-bag of tags, the leftmost/rightmost dependency positions (`llc`, `rrp`, ...), `--unique-tags`, `-e`, `--sections` ranges,
+enclosures/parentheses, `MARK`/`ATTACH`/jumps, regex captures (`$1`) and varstrings, bag of tags, the leftmost/rightmost dependency positions (`llc`, `rrp`, ...), `--unique-tags`, `-e`, `--sections` ranges,
 `--split-mappings`, JSON/binary I/O. `disambiguator.bin` (a compiled `CG3B` grammar) cannot be read; use the `.cg3` source.
 
 ---

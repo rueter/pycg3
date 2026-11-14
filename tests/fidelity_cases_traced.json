@@ -40,5 +40,137 @@
   "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nSECTION\nADD (x) (V) ;\n",
   "input": "\"<a>\"\n\t\"a\" A #1->2\n\"<d1>\"\n\t\"d1\" N #2->4\n\"<d2>\"\n\t\"d2\" N #3->4\n\"<r>\"\n\t\"r\" V #4->0\n\"<f>\"\n\t\"f\" Adv #5->4\n",
   "expected": "\"<a>\"\n\t\"a\" A #1->2\n\"<d1>\"\n\t\"d1\" N #2->4\n\"<d2>\"\n\t\"d2\" N #3->4\n\"<r>\"\n\t\"r\" V #4->0 x ADD:6\n\"<f>\"\n\t\"f\" Adv #5->4\n"
+ },
+ {
+  "name": "span_dep_forward",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nLIST X = X ;\nLIST Y = Y ;\nSECTION\nSETPARENT A TO (*1W B) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n\"<b>\"\n\t\"b\" B\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<a>\"\n\t\"a\" A #1001->2001 SETPARENT:7\n\"<.>\"\n\t\".\" CLB #1002->1002\n\"<b>\"\n\t\"b\" B #2001->2001\n\"<.>\"\n\t\".\" CLB #2002->2002\n"
+ },
+ {
+  "name": "span_dep_back_not_printed",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nLIST X = X ;\nLIST Y = Y ;\nSECTION\nSETPARENT B TO (*-1W A) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n\"<b>\"\n\t\"b\" B\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<a>\"\n\t\"a\" A #1001->1001\n\"<.>\"\n\t\".\" CLB #1002->1002\n\"<b>\"\n\t\"b\" B #2001->2001 SETPARENT:7\n\"<.>\"\n\t\".\" CLB #2002->2002\n"
+ },
+ {
+  "name": "span_relation",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nLIST X = X ;\nLIST Y = Y ;\nSECTION\nADDRELATION (next) A TO (*1W B) ;\nADDRELATION (prev) B TO (*-1W A) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n\"<b>\"\n\t\"b\" B\n\"<.>\"\n\t\".\" CLB\n\"<a2>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<a>\"\n\t\"a\" A ID:1 R:next:4 ADDRELATION(next):7\n\"<.>\"\n\t\".\" CLB\n\"<b>\"\n\t\"b\" B ID:4 R:prev:1 ADDRELATION(prev):8\n\"<.>\"\n\t\".\" CLB\n\"<a2>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_history_two_windows",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nLIST X = X ;\nLIST Y = Y ;\nSECTION\nREMOVE X (*-1< A) ;\n",
+  "input": "\"<a>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n\"<p>\"\n\t\"p\" Y\n\"<.>\"\n\t\".\" CLB\n\"<q>\"\n\t\"q\" Y\n\"<.>\"\n\t\".\" CLB\n\"<r>\"\n\t\"r\" Y\n\"<.>\"\n\t\".\" CLB\n\"<x>\"\n\t\"x\" X\n\t\"x\" Y\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<a>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n\"<p>\"\n\t\"p\" Y\n\"<.>\"\n\t\".\" CLB\n\"<q>\"\n\t\"q\" Y\n\"<.>\"\n\t\".\" CLB\n\"<r>\"\n\t\"r\" Y\n\"<.>\"\n\t\".\" CLB\n\"<x>\"\n\t\"x\" X\n\t\"x\" Y\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_lookahead_two_windows",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nLIST X = X ;\nLIST Y = Y ;\nSECTION\nREMOVE X (*1> B) ;\n",
+  "input": "\"<x>\"\n\t\"x\" X\n\t\"x\" Y\n\"<.>\"\n\t\".\" CLB\n\"<p>\"\n\t\"p\" Y\n\"<.>\"\n\t\".\" CLB\n\"<q>\"\n\t\"q\" Y\n\"<.>\"\n\t\".\" CLB\n\"<b>\"\n\t\"b\" B\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<x>\"\n\t\"x\" X\n\t\"x\" Y\n\"<.>\"\n\t\".\" CLB\n\"<p>\"\n\t\"p\" Y\n\"<.>\"\n\t\".\" CLB\n\"<q>\"\n\t\"q\" Y\n\"<.>\"\n\t\".\" CLB\n\"<b>\"\n\t\"b\" B\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_flag_before_star",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nLIST X = X ;\nLIST Y = Y ;\nSECTION\nSELECT Y (C*1W (A)) ;\n",
+  "input": "\"<x>\"\n\t\"x\" X\n\t\"x\" Y\n\"<.>\"\n\t\".\" CLB\n\"<a>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<x>\"\n\t\"x\" Y SELECT:7\n;\t\"x\" X SELECT:7\n\"<.>\"\n\t\".\" CLB\n\"<a>\"\n\t\"a\" A\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_10",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT X (NOT 0*W S) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" A N\n\t\"w\" S\n\t\"w\" N X\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" X\n\t\"w\" A S\n\t\"w\" S V\n\"<w1_1>\"\n\t\"w\" V X\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" A N\n\t\"w\" S\n\t\"w\" N X\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" X\n\t\"w\" A S\n\t\"w\" S V\n\"<w1_1>\"\n\t\"w\" V X\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_11",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT X (NEGATE *-1W S) ;\nREMOVE X (*1W N) (NEGATE 1 A) ;\nREMOVE N (0*W N) ;\nSELECT Y (1*W S BARRIER N) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" S\n\t\"w\" A V\n\t\"w\" N\n\"<w0_1>\"\n\t\"w\" X\n\t\"w\" A\n\t\"w\" N\n\"<w0_2>\"\n\t\"w\" V\n\t\"w\" N\n\t\"w\" S X\n\"<w0_3>\"\n\t\"w\" N Y\n\t\"w\" S\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n\t\"w\" N X\n\"<w1_1>\"\n\t\"w\" V\n\"<w1_2>\"\n\t\"w\" N\n\t\"w\" X\n\t\"w\" S V\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" S\n\t\"w\" X\n\"<w2_1>\"\n\t\"w\" N X\n\t\"w\" N V\n\t\"w\" A Y\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" S\n\t\"w\" A V\n;\t\"w\" N REMOVE:11\n\"<w0_1>\"\n\t\"w\" A\n;\t\"w\" X REMOVE:10\n;\t\"w\" N REMOVE:11\n\"<w0_2>\"\n\t\"w\" V\n;\t\"w\" N REMOVE:11\n;\t\"w\" S X REMOVE:10\n\"<w0_3>\"\n\t\"w\" S\n;\t\"w\" N Y REMOVE:11\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n;\t\"w\" N X REMOVE:10\n\"<w1_1>\"\n\t\"w\" V\n\"<w1_2>\"\n\t\"w\" S V\n;\t\"w\" N REMOVE:11\n;\t\"w\" X REMOVE:10\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" S\n\t\"w\" X\n\"<w2_1>\"\n\t\"w\" N X\n\t\"w\" N V\n\t\"w\" A Y\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_12",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nREMOVE Y (NOT *1W N) (NOT 1*W X) ;\nSELECT X (*-1W X BARRIER V LINK (-1*W (<<<))) (2W N) ;\nSELECT N (NOT **1W V) (@-1> A) ;\nSELECT Y (NEGATE *1 (<<<)) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" S\n\t\"w\" V\n\t\"w\" A\n\"<w0_1>\"\n\t\"w\" A S\n\t\"w\" A\n\t\"w\" A\n\"<w0_2>\"\n\t\"w\" Y\n\t\"w\" N\n\"<w0_3>\"\n\t\"w\" N Y\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" V Y\n\"<w1_1>\"\n\t\"w\" V\n\"<w1_2>\"\n\t\"w\" N X\n\"<w1_3>\"\n\t\"w\" A Y\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" A\n\t\"w\" X\n\"<w2_1>\"\n\t\"w\" V\n\t\"w\" A Y\n\t\"w\" V\n\"<w2_2>\"\n\t\"w\" Y\n\t\"w\" A\n\t\"w\" V\n\"<w2_3>\"\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" N\n\t\"w\" A S\n\"<.>\"\n\t\".\" CLB\n\"<w4_0>\"\n\t\"w\" S X\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" S\n\t\"w\" V\n\t\"w\" A\n\"<w0_1>\"\n\t\"w\" A S\n\t\"w\" A\n\"<w0_2>\"\n\t\"w\" Y\n\t\"w\" N\n\"<w0_3>\"\n\t\"w\" N Y\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" V Y\n\"<w1_1>\"\n\t\"w\" V\n\"<w1_2>\"\n\t\"w\" N X\n\"<w1_3>\"\n\t\"w\" A Y\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" A\n\t\"w\" X\n\"<w2_1>\"\n\t\"w\" V\n\t\"w\" A Y\n\"<w2_2>\"\n\t\"w\" Y\n\t\"w\" A\n\t\"w\" V\n\"<w2_3>\"\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" N\n\t\"w\" A S\n\"<.>\"\n\t\".\" CLB\n\"<w4_0>\"\n\t\"w\" S X\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_15",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nREMOVE Y (*-1W N BARRIER V) ;\nREMOVE V (NOT *1> (>>>) LINK (*W (>>>))) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" V Y\n\t\"w\" X\n\t\"w\" X\n\"<w0_1>\"\n\t\"w\" X Y\n\t\"w\" S\n\t\"w\" N X\n\"<w0_2>\"\n\t\"w\" V\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n\t\"w\" N V\n\t\"w\" X\n\"<w1_1>\"\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" V Y\n\t\"w\" X\n\"<w0_1>\"\n\t\"w\" X Y\n\t\"w\" S\n\t\"w\" N X\n\"<w0_2>\"\n\t\"w\" V\n;\t\"w\" Y REMOVE:9\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n\t\"w\" X\n;\t\"w\" N V REMOVE:10\n\"<w1_1>\"\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_17",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nREMOVE A (NEGATE *-1W Y BARRIER N LINK (NOT *-1> Y)) (*1< (<<<) BARRIER Y LINK (*-1> A)) ;\nSELECT A (0*> Y) ;\nSELECT Y (NOT -1*W (>>>) BARRIER A) ;\nREMOVE N (NEGATE *-1< N LINK (@-1> X)) (*-1< Y BARRIER A LINK (NEGATE @-1W A)) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" A\n\t\"w\" Y\n\"<w0_1>\"\n\t\"w\" A N\n\t\"w\" A\n\t\"w\" X\n\"<w0_2>\"\n\t\"w\" S X\n\t\"w\" S\n\t\"w\" A\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" N Y\n\"<w1_1>\"\n\t\"w\" X\n\t\"w\" S Y\n\t\"w\" V\n\"<w1_2>\"\n\t\"w\" S\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" A\n\t\"w\" V\n\t\"w\" N S\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" Y\n;\t\"w\" A REMOVE:9\n\"<w0_1>\"\n\t\"w\" A SELECT:10\n;\t\"w\" A N SELECT:10 REMOVE:12\n;\t\"w\" X SELECT:10\n\"<w0_2>\"\n\t\"w\" S X\n\t\"w\" S\n;\t\"w\" A REMOVE:9\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" N Y\n\"<w1_1>\"\n\t\"w\" S Y SELECT:11\n;\t\"w\" X SELECT:11\n;\t\"w\" V SELECT:11\n\"<w1_2>\"\n\t\"w\" S\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" V\n;\t\"w\" A REMOVE:9\n;\t\"w\" N S REMOVE:12\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_21",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT X (-1 S) (NEGATE @1< X LINK (NEGATE 0*< (<<<) BARRIER V)) ;\nSELECT N (NOT 3W S BARRIER A) (*2W (>>>) BARRIER N LINK (0*< S BARRIER A)) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" S\n\"<w0_1>\"\n\t\"w\" N V\n\"<w0_2>\"\n\t\"w\" S\n\"<w0_3>\"\n\t\"w\" N\n\t\"w\" X Y\n\t\"w\" A\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n\t\"w\" X Y\n\t\"w\" X\n\"<w1_1>\"\n\t\"w\" N\n\t\"w\" S\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" N Y\n\"<w2_1>\"\n\t\"w\" Y\n\t\"w\" Y\n\t\"w\" V\n\"<w2_2>\"\n\t\"w\" S\n\t\"w\" A\n\t\"w\" N V\n\"<w2_3>\"\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" S\n\t\"w\" S\n\"<w3_1>\"\n\t\"w\" X\n\t\"w\" S\n\t\"w\" A\n\"<w3_2>\"\n\t\"w\" S V\n\t\"w\" V\n\"<w3_3>\"\n\t\"w\" X\n\t\"w\" S X\n\t\"w\" A\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" S\n\"<w0_1>\"\n\t\"w\" N V\n\"<w0_2>\"\n\t\"w\" S\n\"<w0_3>\"\n\t\"w\" X Y SELECT:9\n;\t\"w\" N SELECT:9\n;\t\"w\" A SELECT:9\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n\t\"w\" X Y\n\t\"w\" X\n\"<w1_1>\"\n\t\"w\" N SELECT:10\n;\t\"w\" S SELECT:10\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" N Y\n\"<w2_1>\"\n\t\"w\" Y\n\t\"w\" V\n\"<w2_2>\"\n\t\"w\" N V SELECT:10\n;\t\"w\" S SELECT:10\n;\t\"w\" A SELECT:10\n\"<w2_3>\"\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" S\n\"<w3_1>\"\n\t\"w\" X SELECT:9\n;\t\"w\" S SELECT:9\n;\t\"w\" A SELECT:9\n\"<w3_2>\"\n\t\"w\" S V\n\t\"w\" V\n\"<w3_3>\"\n\t\"w\" X SELECT:9\n\t\"w\" S X SELECT:9\n;\t\"w\" A SELECT:9\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_23",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nREMOVE N (NOT *-1 (>>>) BARRIER V LINK (1W S)) (-2W S) ;\nSELECT A (0*W (>>>)) ;\nREMOVE Y (NEGATE **1W Y) (NOT 2W A) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" Y\n\"<w0_1>\"\n\t\"w\" Y\n\t\"w\" N\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" Y\n\t\"w\" A Y\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" A Y\n\"<w2_1>\"\n\t\"w\" V Y\n\t\"w\" N V\n\"<w2_2>\"\n\t\"w\" S\n\t\"w\" A V\n\t\"w\" S\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" X\n\t\"w\" N\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" Y\n\"<w0_1>\"\n\t\"w\" Y\n\t\"w\" N\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A Y SELECT:10\n;\t\"w\" Y SELECT:10\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" A Y\n\"<w2_1>\"\n\t\"w\" N V\n;\t\"w\" V Y REMOVE:11\n\"<w2_2>\"\n\t\"w\" A V SELECT:10\n;\t\"w\" S SELECT:10\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" X\n\t\"w\" N\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_24",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT V (0*W V) ;\nREMOVE N (1 N) (NOT 3W Y) ;\nREMOVE Y (-1*W Y BARRIER A) ;\nREMOVE V (*1> Y BARRIER Y) (NOT *-1> Y) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" S V\n\t\"w\" A\n\t\"w\" S V\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" V Y\n\t\"w\" N\n\"<w1_1>\"\n\t\"w\" A\n\t\"w\" S Y\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" S V SELECT:9\n;\t\"w\" A SELECT:9\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" V Y SELECT:9\n;\t\"w\" N SELECT:9\n\"<w1_1>\"\n\t\"w\" A\n\t\"w\" X\n;\t\"w\" S Y REMOVE:11\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_44",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nREMOVE V (*W N) (-2W Y) ;\nSELECT A (2W Y LINK (NEGATE 2W V)) (*1> Y BARRIER X LINK (-1 X BARRIER V)) ;\nREMOVE N (*2W (>>>)) (NEGATE 1 A) ;\nREMOVE Y (1> N LINK (NEGATE -3W Y)) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" A\n\t\"w\" N V\n\"<w0_1>\"\n\t\"w\" X\n\t\"w\" S\n\t\"w\" N V\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" Y\n\t\"w\" N S\n\t\"w\" N\n\"<w1_1>\"\n\t\"w\" S V\n\t\"w\" N\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" N Y\n\t\"w\" X Y\n\"<w2_1>\"\n\t\"w\" A X\n\"<w2_2>\"\n\t\"w\" A Y\n\t\"w\" A N\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" A\n;\t\"w\" N V REMOVE:11\n\"<w0_1>\"\n\t\"w\" X\n\t\"w\" S\n;\t\"w\" N V REMOVE:11\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" Y\n;\t\"w\" N S REMOVE:11\n;\t\"w\" N REMOVE:11\n\"<w1_1>\"\n\t\"w\" S V\n;\t\"w\" N REMOVE:11\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" N Y\n\t\"w\" X Y\n\"<w2_1>\"\n\t\"w\" A X\n\"<w2_2>\"\n\t\"w\" A Y\n\t\"w\" A N\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_60",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nREMOVE Y (1> S) ;\nREMOVE N (NOT *1W N) ;\nREMOVE X (*1W A) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" A\n\t\"w\" N\n\t\"w\" A\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" N V\n\t\"w\" S\n\t\"w\" S V\n\"<w1_1>\"\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" N X\n\t\"w\" N\n\"<w2_1>\"\n\t\"w\" N\n\"<w2_2>\"\n\t\"w\" A S\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" S Y\n\t\"w\" A\n\t\"w\" N X\n\"<w3_1>\"\n\t\"w\" N X\n\t\"w\" V Y\n\t\"w\" V\n\"<w3_2>\"\n\t\"w\" Y\n\t\"w\" N Y\n\"<w3_3>\"\n\t\"w\" X\n\t\"w\" N\n\"<.>\"\n\t\".\" CLB\n\"<w4_0>\"\n\t\"w\" A\n\"<w4_1>\"\n\t\"w\" V X\n\t\"w\" Y\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" A\n\t\"w\" N\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" N V\n\t\"w\" S\n\t\"w\" S V\n\"<w1_1>\"\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" N\n;\t\"w\" N X REMOVE:11\n\"<w2_1>\"\n\t\"w\" N\n\"<w2_2>\"\n\t\"w\" A S\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" S Y\n\t\"w\" A\n;\t\"w\" N X REMOVE:11\n\"<w3_1>\"\n\t\"w\" V Y\n\t\"w\" V\n;\t\"w\" N X REMOVE:11\n\"<w3_2>\"\n\t\"w\" Y\n;\t\"w\" N Y REMOVE:10\n\"<w3_3>\"\n\t\"w\" X\n;\t\"w\" N REMOVE:10\n\"<.>\"\n\t\".\" CLB\n\"<w4_0>\"\n\t\"w\" A\n\"<w4_1>\"\n\t\"w\" V X\n\t\"w\" Y\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_75",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT X (NEGATE 3W S) ;\nREMOVE N (0*< Y) (-1*W S LINK (NEGATE @-1> S)) ;\nSELECT V (0*> Y) ;\nSELECT N (@-1W V BARRIER A LINK (NOT 2W V)) (NEGATE *-1< V) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" S\n\"<w0_1>\"\n\t\"w\" N\n\t\"w\" A X\n\t\"w\" N Y\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A N\n\t\"w\" A V\n\t\"w\" X\n\"<w1_1>\"\n\t\"w\" N S\n\t\"w\" A\n\t\"w\" A N\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" A N\n\t\"w\" A Y\n\"<w2_1>\"\n\t\"w\" N Y\n\t\"w\" V Y\n\"<w2_2>\"\n\t\"w\" X\n\t\"w\" A V\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" S\n\"<w0_1>\"\n\t\"w\" A X SELECT:9\n;\t\"w\" N SELECT:9\n;\t\"w\" N Y SELECT:9\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" X SELECT:9\n;\t\"w\" A N SELECT:9\n;\t\"w\" A V SELECT:9\n\"<w1_1>\"\n\t\"w\" N S\n\t\"w\" A\n\t\"w\" A N\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" A Y\n;\t\"w\" A N REMOVE:10\n\"<w2_1>\"\n\t\"w\" V Y\n;\t\"w\" N Y REMOVE:10\n\"<w2_2>\"\n\t\"w\" X SELECT:9\n;\t\"w\" A V SELECT:9\n;\t\"w\" V SELECT:9\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_76",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT X (0*< N LINK (NOT -1< S)) ;\nREMOVE A (NEGATE *1> N BARRIER X) ;\nSELECT V (NOT @-1> N BARRIER X LINK (*W Y)) (NEGATE -2W V BARRIER V) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" X Y\n\"<w0_1>\"\n\t\"w\" N\n\t\"w\" V X\n\"<w0_2>\"\n\t\"w\" V X\n\t\"w\" Y\n\"<w0_3>\"\n\t\"w\" V\n\t\"w\" Y\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" X\n\"<w1_1>\"\n\t\"w\" S\n\t\"w\" N\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" N\n\t\"w\" X Y\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" A S\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" X Y\n\"<w0_1>\"\n\t\"w\" V X SELECT:11\n;\t\"w\" N SELECT:11\n\"<w0_2>\"\n\t\"w\" V X SELECT:9\n;\t\"w\" Y SELECT:9\n\"<w0_3>\"\n\t\"w\" V\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" X\n\"<w1_1>\"\n\t\"w\" S\n\t\"w\" N\n\t\"w\" X\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" X Y SELECT:9\n;\t\"w\" N SELECT:9\n;\t\"w\" Y SELECT:9\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" A S\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_82",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT Y (*-1> A LINK (0*< (<<<))) (*-1> X) ;\nREMOVE X (1*W (>>>) LINK (*-1W X)) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" S Y\n\t\"w\" X\n\t\"w\" S X\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A N\n\"<w1_1>\"\n\t\"w\" A\n\t\"w\" V\n\t\"w\" A\n\"<w1_2>\"\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" S Y\n\"<w2_1>\"\n\t\"w\" A\n\t\"w\" V Y\n\"<w2_2>\"\n\t\"w\" S\n\t\"w\" N X\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" S Y\n;\t\"w\" X REMOVE:10\n;\t\"w\" S X REMOVE:10\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A N\n\"<w1_1>\"\n\t\"w\" A\n\t\"w\" V\n\"<w1_2>\"\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" S Y\n\"<w2_1>\"\n\t\"w\" A\n\t\"w\" V Y\n\"<w2_2>\"\n\t\"w\" S\n\t\"w\" N X\n\t\"w\" Y\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "span_random_83",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST N = N ;\nLIST V = V ;\nLIST A = A ;\nLIST X = X ;\nLIST Y = Y ;\nLIST S = S ;\nSECTION\nSELECT N (*1 N LINK (*-1W V)) ;\nREMOVE X (*-1< X) ;\nSELECT X (-1W N) ;\nSELECT Y (@-1> S) ;\n",
+  "input": "\"<w0_0>\"\n\t\"w\" V\n\t\"w\" S Y\n\"<w0_1>\"\n\t\"w\" Y\n\t\"w\" N\n\t\"w\" V X\n\"<w0_2>\"\n\t\"w\" N Y\n\t\"w\" X\n\t\"w\" V\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n\t\"w\" V\n\"<w1_1>\"\n\t\"w\" Y\n\"<w1_2>\"\n\t\"w\" A\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" S\n\t\"w\" V X\n\"<w2_1>\"\n\t\"w\" S Y\n\t\"w\" Y\n\t\"w\" N Y\n\"<w2_2>\"\n\t\"w\" S X\n\t\"w\" S\n\t\"w\" N\n\"<w2_3>\"\n\t\"w\" Y\n\t\"w\" N V\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" N S\n\t\"w\" N S\n\"<w3_1>\"\n\t\"w\" Y\n\t\"w\" N X\n\"<w3_2>\"\n\t\"w\" A X\n\t\"w\" V\n\"<w3_3>\"\n\t\"w\" S\n\"<.>\"\n\t\".\" CLB\n\"<w4_0>\"\n\t\"w\" A\n\t\"w\" X\n\t\"w\" N S\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<w0_0>\"\n\t\"w\" V\n\t\"w\" S Y\n\"<w0_1>\"\n\t\"w\" N SELECT:9\n;\t\"w\" Y SELECT:9\n;\t\"w\" V X SELECT:9\n\"<w0_2>\"\n\t\"w\" X SELECT:11\n;\t\"w\" N Y SELECT:11\n;\t\"w\" V SELECT:11\n\"<.>\"\n\t\".\" CLB\n\"<w1_0>\"\n\t\"w\" A\n\t\"w\" V\n\"<w1_1>\"\n\t\"w\" Y\n\"<w1_2>\"\n\t\"w\" A\n\"<.>\"\n\t\".\" CLB\n\"<w2_0>\"\n\t\"w\" S\n;\t\"w\" V X REMOVE:10\n\"<w2_1>\"\n\t\"w\" N Y SELECT:9\n;\t\"w\" S Y SELECT:9\n;\t\"w\" Y SELECT:9\n\"<w2_2>\"\n\t\"w\" N SELECT:9\n;\t\"w\" S X SELECT:9\n;\t\"w\" S SELECT:9\n\"<w2_3>\"\n\t\"w\" Y\n\t\"w\" N V\n\"<.>\"\n\t\".\" CLB\n\"<w3_0>\"\n\t\"w\" N S\n\"<w3_1>\"\n\t\"w\" N X SELECT:11\n;\t\"w\" Y SELECT:11\n\"<w3_2>\"\n\t\"w\" V\n;\t\"w\" A X REMOVE:10\n\"<w3_3>\"\n\t\"w\" S\n\"<.>\"\n\t\".\" CLB\n\"<w4_0>\"\n\t\"w\" A\n\t\"w\" N S\n;\t\"w\" X REMOVE:10\n\"<.>\"\n\t\".\" CLB\n"
+ },
+ {
+  "name": "setparent_restart_from_rejected",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nSETPARENT A TO (*W A) ;\n",
+  "input": "\"<a1>\"\n\t\"a1\" A\n\"<.>\"\n\t\".\" CLB\n\"<a2>\"\n\t\"a2\" A\n\"<.>\"\n\t\".\" CLB\n\"<a3>\"\n\t\"a3\" A\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<a1>\"\n\t\"a1\" A #1001->2001 SETPARENT:4\n\"<.>\"\n\t\".\" CLB #1002->1002\n\"<a2>\"\n\t\"a2\" A #2001->2001\n\"<.>\"\n\t\".\" CLB #2002->2002\n\"<a3>\"\n\t\"a3\" A #3001->3001 SETPARENT:4\n\"<.>\"\n\t\".\" CLB #3002->3002\n"
+ },
+ {
+  "name": "setparent_safe_keeps_parent",
+  "grammar": "DELIMITERS = \"<.>\" ;\nLIST A = A ;\nLIST B = B ;\nSETPARENT A TO (1W B) ;\nSETPARENT SAFE A TO (*1W (*)) ;\n",
+  "input": "\"<a1>\"\n\t\"a1\" A\n\"<.>\"\n\t\".\" CLB\n\"<b1>\"\n\t\"b1\" B\n\"<.>\"\n\t\".\" CLB\n\"<c1>\"\n\t\"c1\" C\n\"<.>\"\n\t\".\" CLB\n",
+  "expected": "\"<a1>\"\n\t\"a1\" A #1->2 SETPARENT:5\n\"<.>\"\n\t\".\" CLB #2->2\n\"<b1>\"\n\t\"b1\" B #1->1\n\"<.>\"\n\t\".\" CLB #2->2\n\"<c1>\"\n\t\"c1\" C #1->1\n\"<.>\"\n\t\".\" CLB #2->2\n"
  }
 ]

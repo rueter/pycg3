@@ -94,6 +94,9 @@ class Rule:
             if self.type in ('REMPARENT', 'SWITCHPARENT') and cohort.dep_parent is None:
                 i += 1                                      # no parent: nothing to remove or switch
                 continue
+            if cohort.dep_parent is not None and ('NOPARENT' in self.flags or (self.type == 'SETPARENT' and 'SAFE' in self.flags)):
+                i += 1                                      # SETPARENT SAFE (and NOPARENT) leave a cohort that already has a parent alone
+                continue
             if tests_ok is None:
                 tests_ok = all(t.evaluate(window, i, grammar) for t in self.context_tests)
             if not tests_ok:
@@ -245,7 +248,7 @@ class Rule:
         """SETPARENT: the cohort becomes a child of the cohort the TO tests lead to; SETCHILD: the other way round.
         The cohort it leads to is the one of the test with the A flag, else where the last LINKed test ended;
         a candidate that would make a loop is skipped (the scan goes on), and an earlier attachment is replaced."""
-        from pycg3 import set_def
+        from pycg3 import set_def, context
         if not self.dep_tests:
             return False
         lead = targets[0] if targets else None      # the reading that gets the label
@@ -268,7 +271,7 @@ class Rule:
             found = self._dep_search(window, i, cohort, grammar)
         if found is None:
             return False
-        other = window.virtual(found)
+        other = found                              # the cohort the tests led to
         if self.type in REL_TYPES:
             return self._relate(cohort, other, lead)
         as_child = (self.type == 'SETPARENT') != ('REVERSE' in self.flags)      # FROM turns it round
@@ -278,8 +281,10 @@ class Rule:
                 child.dep_parent.dep_children.remove(child)
             child.dep_parent = parent
             parent.dep_children.append(child)
-            parent.dep_children.sort(key=window.index_of)
+            parent.dep_children.sort(key=context.order_key)
         window.has_dep = True
+        if child.parent_window is not parent.parent_window:
+            grammar.dep_has_spanned = True
         if lead is not None:
             lead.trace.append(self.label)           # vislcg3 labels the first reading that matched, not all of them
         return True
@@ -301,13 +306,15 @@ class Rule:
         def attach(p, c):
             state = context.AttachState(window, c, as_child=True, block_crossing=getattr(grammar, 'dep_block_crossing', False),
                                         block_loops=getattr(grammar, 'dep_block_loops', True))
-            if not state.valid(window.index_of(p)):
+            if not state.valid(p):
                 return
             if c.dep_parent is not None and c in c.dep_parent.dep_children:
                 c.dep_parent.dep_children.remove(c)
             c.dep_parent = p
             p.dep_children.append(c)
-            p.dep_children.sort(key=window.index_of)
+            p.dep_children.sort(key=context.order_key)
+            if c.parent_window is not p.parent_window:
+                grammar.dep_has_spanned = True
 
         if grand is not None:
             attach(grand, child)
@@ -343,29 +350,55 @@ class Rule:
         return did
 
     def _dep_search(self, window, i, cohort, grammar):
-        """The index of the cohort the TO tests lead to for the cohort at window index i, or None."""
-        from pycg3 import context
-        state = context.AttachState(window, cohort, as_child=(self.type == 'SETPARENT') != ('REVERSE' in self.flags),
-                                    check=self.type in DEP_TYPES,
-                                    allow_loop='ALLOWLOOP' in self.flags, allow_cross='ALLOWCROSS' in self.flags,
-                                    block_crossing=getattr(grammar, 'dep_block_crossing', False),
-                                    block_loops=getattr(grammar, 'dep_block_loops', True))
-        found = None
+        """The cohort the TO tests lead to for the cohort at window index i, or None.
+
+        As in vislcg3 the first TO test runs from the cohort and leads to one cohort (the one with the A flag, else where
+        the last LINKed test ended); the other TO tests have to hold from there. If that cohort cannot be attached to
+        (a loop, crossing branches) the test is run again from it - an offset other than 0 becomes +1 / -1 - and a cohort
+        seen before ends the search. A barrier met by the scan ends it as well, and so does the flag NEAREST."""
+        from pycg3 import context, set_def
+        check = self.type in DEP_TYPES
+        as_child = (self.type == 'SETPARENT') != ('REVERSE' in self.flags)
+        attacher = context.AttachState(window, cohort, as_child=as_child, check=check,
+                                       allow_loop='ALLOWLOOP' in self.flags, allow_cross='ALLOWCROSS' in self.flags,
+                                       block_crossing=getattr(grammar, 'dep_block_crossing', False),
+                                       block_loops=getattr(grammar, 'dep_block_loops', True))
+        state = context.AttachState(window, cohort, check=False)       # only notes where the test ends up
+        first, rest = self.dep_tests[0], self.dep_tests[1:]
+        org_offset = first.offset
+        seen = {id(cohort)}
+        at_window, at = window, i + 1
         try:
-            for n, test in enumerate(self.dep_tests):
+            while True:
+                bindings = set_def.get_unif()
+                saved = {k: list(v) for k, v in bindings.items()} if bindings is not None else None
                 state.marked = state.final = None
-                context.set_attach(state if n == 0 else None)
-                if n == 0:
-                    if not test.evaluate(window, i, grammar):
-                        if state.matched and len(self.dep_tests) == 1:
-                            window.has_dep = True   # led only to cohorts it cannot attach to: vislcg3 still prints dependencies
-                        return None
-                    found = state.final
-                elif found is None or not context._run_contextual_test(window, found, test):
-                    return None                     # TO (a)(b): b is tested from the cohort a led to, and only has to hold
+                context.set_attach(state)
+                context.reset_seen_barrier()
+                led = context._run_contextual_test(at_window, at, first)
+                context.set_attach(None)
+                if not led or state.final is None:
+                    return None
+                attach = state.final
+                stop = context.seen_barrier() or 'NEAREST' in self.flags
+                good = all(context._run_contextual_test(attach.parent_window, attach.parent_window.index_of(attach), t)
+                           for t in rest)
+                if good:
+                    if check:
+                        window.has_dep = True       # vislcg3 prints dependencies once a rule has got this far
+                    if attacher.valid(attach):
+                        return attach
+                if stop or id(attach) in seen:
+                    return None
+                seen.add(id(attach))
+                if saved is not None:
+                    set_def.set_unif(saved)
+                at_window, at = attach.parent_window, attach.parent_window.index_of(attach)
+                if first.offset != 0:
+                    first.offset = -1 if first.offset < 0 else 1
         finally:
+            first.offset = org_offset
             context.set_attach(None)
-        return found
 
     def _select(self, cohort: Cohort, targets: List[Reading]) -> bool:
         active = [r for r in cohort.readings if not r.deleted]
