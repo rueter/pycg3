@@ -4,6 +4,7 @@ import re
 from functools import lru_cache
 from typing import Optional, Union, List
 
+_WEIGHT_RE = re.compile(r'^<W:(-?[0-9]+(?:\.[0-9]+)?)>$')
 _PROP_RE = re.compile(r'\\{1,2}([pP])\{(\^?)([A-Za-z_]+)\}')
 
 
@@ -92,7 +93,8 @@ class TagPattern:
         'literal',
         '_regex',
         'last_match',
-        'regex_kind'
+        'regex_kind',
+        'num_value'
     )
 
     def __init__(self, raw: str):
@@ -108,6 +110,11 @@ class TagPattern:
         self.literal = pattern_str
         self._regex: Optional[re.Pattern] = None
         self.last_match: Optional[re.Match] = None
+        # <W:0> and <W:0.0> are the same tag to vislcg3: a weight tag in a set is compared by its number
+        self.num_value: Optional[float] = None
+        wm = _WEIGHT_RE.match(pattern_str)
+        if wm:
+            self.num_value = float(wm.group(1))
         self.regex_kind: Optional[str] = None     # "<...>"r is a word form regex, "..."r a base form regex: each is only tried on its own kind of tag
 
         # Check for quoted string with trailing flags: e.g. "pattern"r, "pattern"ri, "pattern"i
@@ -161,6 +168,13 @@ class TagPattern:
         """Check if this pattern matches an individual tag string."""
         if self.is_any:
             return True
+
+        if self.num_value is not None and tag.startswith('<W:') and tag.endswith('>'):
+            try:
+                if float(tag[3:-1]) == self.num_value:
+                    return True
+            except ValueError:
+                pass
 
         if self.is_regex and self._regex is not None:
             if self.regex_kind == 'wordform' and not is_wordform(tag):

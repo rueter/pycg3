@@ -29,7 +29,7 @@ class CompositeTag:
 
 
 def _is_literal(p: TagPattern) -> bool:
-    return not (p.is_any or p.is_regex or p.is_case_insensitive or p.is_failfast)
+    return not (p.is_any or p.is_regex or p.is_case_insensitive or p.is_failfast or p.num_value is not None)
 
 
 def _pattern_matches(p: TagPattern, have) -> bool:

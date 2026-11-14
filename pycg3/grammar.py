@@ -28,7 +28,8 @@ RULE_FLAGS = {
 # '^' is the fail-fast difference: in vislcg3 (1.7) it matches exactly what '-' matches, on lists and on sets alike
 SET_OPS = {'+': 'and', '-': 'minus', '^': 'minus', '\\': 'tdiff', '∆': 'tsym', '∩': 'tand'}
 # digits are optional: (* X) and (-* X) are both 0*, the scan in both directions
-POSITION_RE = re.compile(r'^(@?)(\**)(-?)(\d*)(\**)([A-Za-z]*)$')
+POSITION_RE = re.compile(r'^(@?)(\**)(-?)(\d*)(\**)([A-Za-z]*)(?:/(-?\d+))?$')
+SUB_FLAG_RE = re.compile(r'^SUB:(-?\d+)$', re.I)
 
 
 class GrammarError(ValueError):
@@ -312,8 +313,13 @@ class GrammarParser:
         line = stmt[0][1]
         i = 1
         flags = set()
-        while i < len(words) and words[i].upper() in RULE_FLAGS:
-            flags.add(words[i].upper())
+        sub = None
+        while i < len(words) and (words[i].upper() in RULE_FLAGS or SUB_FLAG_RE.match(words[i])):
+            sm = SUB_FLAG_RE.match(words[i])
+            if sm:
+                sub = int(sm.group(1))      # SUB:n - the rule looks at the n-th sub-reading of each reading
+            else:
+                flags.add(words[i].upper())
             i += 1
 
         def group_at(i):
@@ -381,6 +387,7 @@ class GrammarParser:
                     action_tags=action_tags, subst_old=subst_old)
         rule.direction = direction
         rule.flags = flags
+        rule.sub = sub
         rule.uses_unify = self._unify_seen
         self._unify_seen = False
         return rule
@@ -448,6 +455,7 @@ class GrammarParser:
         pos = words[i] if i < len(words) else '0'
         i += 1
         offset, scan_first, scan_all, careful, absolute, self_, no_barrier = 0, False, False, False, False, False, False
+        sub = None                  # (0/1 ...): look at sub-reading 1 of each reading of the cohort
         m = POSITION_RE.match(pos)
         if m:
             absolute = bool(m.group(1))
@@ -457,6 +465,8 @@ class GrammarParser:
             scan_all, scan_first = stars >= 2, stars == 1
             flags = m.group(6)
             careful, self_, no_barrier = 'C' in flags, 'S' in flags, 'N' in flags
+            if m.group(7) is not None:
+                sub = int(m.group(7))
             if 'self-no-barrier' in self.grammar.options and self_:
                 no_barrier = not no_barrier
 
@@ -495,4 +505,4 @@ class GrammarParser:
         return ContextualTest(target=target, offset=offset, scan_first=scan_first, scan_all=scan_all, careful=careful,
                               not_=is_not, negate=is_negate, absolute=absolute, self_=self_, no_barrier=no_barrier,
                               all_=all_, none_=none_, barrier=barrier, cbarrier=cbarrier, linked_test=linked,
-                              raw_pos=pos)
+                              raw_pos=pos, sub=sub)

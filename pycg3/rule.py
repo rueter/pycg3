@@ -12,7 +12,7 @@ class Rule:
     __slots__ = (
         'type', 'name', 'label', 'line_number', 'target', 'target_modifiers', 'context_tests',
         'action_tags', 'subst_old', 'subst_old_tag', 'wordform_filter', 'direction', 'flags', 'is_careful',
-        'uses_unify',
+        'uses_unify', 'sub', '_maps',
     )
 
     def __init__(self, rule_type: str, target: Any, name: str = "", line_number: int = 0,
@@ -35,6 +35,8 @@ class Rule:
         self.flags: set = set()
         self.is_careful = 'c' in target_modifiers.lower()
         self.uses_unify = False
+        self._maps = None
+        self.sub = None             # SUB:n - the target set is matched against the n-th sub-reading
 
     @property
     def iterates(self) -> bool:
@@ -51,11 +53,18 @@ class Rule:
         """Apply the rule to every cohort of the window once. True if anything changed."""
         changed = False
         i = 0
+        if self._maps is None:
+            self._maps = self._mentions_mapping_tag(grammar)
+        mp = grammar.mapping_prefix if grammar else '@'
         while i < len(window.cohorts):
             cohort = window.cohorts[i]
             if self.wordform_filter and cohort.wordform != self.wordform_filter:
                 i += 1
                 continue
+            if self._maps and any(len(r.mapping_tags) > 1 for r in cohort.readings if not r.deleted):
+                # vislcg3 makes one reading of each mapping tag when a rule's target matches one of them
+                if any(self._target_matches(r) for r in cohort.readings if not r.deleted and len(r.mapping_tags) > 1):
+                    cohort.split_mappings(mp)
             if self.uses_unify:
                 targets, tests_ok = self._unify_targets(window, i, cohort, grammar)
                 if not targets:
@@ -81,6 +90,36 @@ class Rule:
             i += 1 + delta
         return changed
 
+    def _mentions_mapping_tag(self, grammar) -> bool:
+        """Does the target set of this rule name a mapping tag (@SUBJ ...)?"""
+        prefix = grammar.mapping_prefix if grammar else '@'
+        seen: set = set()
+
+        def walk(obj) -> bool:
+            if obj is None or isinstance(obj, (int, float)) or id(obj) in seen:
+                return False
+            if isinstance(obj, str):
+                obj = (grammar.sets.get(obj) if grammar else None)
+                if obj is None or id(obj) in seen:
+                    return False
+            seen.add(id(obj))
+            if hasattr(obj, 'raw'):                                   # TagPattern
+                return obj.raw.lstrip('!').startswith(prefix)
+            if hasattr(obj, 'elements'):                              # CompositeTag
+                return any(walk(e) for e in obj.elements)
+            if hasattr(obj, 'registry') and hasattr(obj, 'kind'):     # $$Set / &&Set
+                return walk(obj.registry.get(obj.name))
+            if hasattr(obj, 'groups'):                                # SetDefinition
+                if any(walk(i) for i in obj.items):
+                    return True
+                return any(walk(operand) for chain in obj.groups for _, operand in chain)
+            if hasattr(obj, 'linked_test'):                           # ContextualTest
+                return (walk(obj.target) or walk(obj.barrier) or walk(obj.cbarrier) or walk(obj.linked_test)
+                        or any(walk(t) for t in obj.ors))
+            return False
+
+        return walk(self.target)           # only the target: a mapping tag in a context does not split anything
+
     def _unify_targets(self, window, i, cohort, grammar):
         """With $$Set / &&Set in the rule each target reading is tried on its own: the contexts have to agree
         with what that reading matched. Returns (readings that pass, True) or ([], None)."""
@@ -98,6 +137,10 @@ class Rule:
         return good, True
 
     def _target_matches(self, reading: Reading) -> bool:
+        if self.sub is not None:
+            reading = reading.sub_reading(self.sub)
+            if reading is None:
+                return False
         if isinstance(self.target, SetDefinition):
             res = self.target.matches_reading(reading)
         else:
@@ -173,19 +216,36 @@ class Rule:
         keep = set(map(id, targets))
         for r in active:
             if id(r) not in keep:
-                cohort.remove_reading(r, rule_name=self.label)
+                cohort.remove_reading(r, rule_name="" if self.sub is not None else self.label)
         for r in targets:
             r.changed = True
-            r.trace.append(self.label)
+            self._trace_holder(r).trace.append(self.label)
         return True
+
+    def _trace_holder(self, reading: Reading) -> Reading:
+        """With SUB:n vislcg3 -t writes the rule on the line of the sub-reading it matched."""
+        if self.sub is not None:
+            return reading.sub_reading(self.sub) or reading
+        return reading
 
     def _remove(self, cohort: Cohort, targets: List[Reading]) -> bool:
         active = [r for r in cohort.readings if not r.deleted]
         if len(active) <= 1 or len(targets) >= len(active):
             return False                       # a cohort never loses its last reading
         for r in targets:
-            cohort.remove_reading(r, rule_name=self.label)
+            if self.sub is not None:
+                cohort.remove_reading(r)
+                self._trace_holder(r).trace.append(self.label)
+            else:
+                cohort.remove_reading(r, rule_name=self.label)
         return True
+
+    def _ordered_action_tags(self, mp: str) -> List[str]:
+        """The order vislcg3 puts added tags in: the plain ones as written, then the mapping tags, last one first."""
+        mapping = [t for t in self.action_tags if t.startswith(mp)]
+        if len(mapping) < 2:
+            return self.action_tags
+        return [t for t in self.action_tags if not t.startswith(mp)] + [mapping[-1]] + mapping[:-1]
 
     def _add(self, targets: List[Reading], mp: str, is_map: bool) -> bool:
         changed = False
@@ -193,7 +253,7 @@ class Rule:
             if r.mapped:                 # as in vislcg3, MAP, ADD and REPLACE leave a mapped reading alone
                 continue
             did = False
-            for tag in self.action_tags:
+            for tag in self._ordered_action_tags(mp):
                 if not r.has_tag(tag):
                     r.add_tag(tag, mapping_prefix=mp)
                     did = True

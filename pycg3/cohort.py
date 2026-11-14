@@ -99,6 +99,25 @@ class Reading:
         """What makes two readings the same: base form and tag set (order does not matter), sub-readings in order."""
         return (self.baseform, frozenset(self.tags), tuple(sub.identity() for sub in self.sub_readings))
 
+    def sub_chain(self) -> List['Reading']:
+        """The sub-readings in the order the stream lists them (1 = the first line below this reading)."""
+        out: List['Reading'] = []
+        stack = list(reversed(self.sub_readings))
+        while stack:
+            r = stack.pop()
+            out.append(r)
+            stack.extend(reversed(r.sub_readings))
+        return out
+
+    def sub_reading(self, n: int) -> Optional['Reading']:
+        """Sub-reading n as vislcg3 numbers them: 1, 2, ... from the first, -1, -2, ... from the last, 0 = this reading."""
+        if n == 0:
+            return self
+        chain = self.sub_chain()
+        if n > 0:
+            return chain[n - 1] if n <= len(chain) else None
+        return chain[n] if -n <= len(chain) else None
+
     def has_tag(self, tag: str) -> bool:
         """Check if reading contains exact tag."""
         return tag in self._tag_set or tag == self.baseform
@@ -203,6 +222,31 @@ class Cohort:
             reading.number = self._next_number
         self._next_number = max(self._next_number, reading.number + 1)
         self.readings.append(reading)
+
+    def split_mappings(self, mapping_prefix: str = '@') -> bool:
+        """A reading with several mapping tags becomes one reading per mapping tag (vislcg3 does this to every
+        cohort before it runs the next rule, so after a MAP (@A @B) the two are separate readings)."""
+        if not any(len(r.mapping_tags) > 1 for r in self.readings):
+            return False
+        new_readings = []
+        for r in self.readings:
+            mapping = [t for t in r.tags if t.startswith(mapping_prefix)]
+            if len(mapping) > 1:
+                base = [t for t in r.tags if not t.startswith(mapping_prefix)]
+                for mt in mapping:
+                    nr = Reading(baseform=r.baseform, tags=base + [mt], parent_cohort=self)
+                    nr.number = r.number
+                    nr.deleted = r.deleted
+                    nr.changed = r.changed
+                    nr.trace = list(r.trace)
+                    nr.sub_readings = [x.clone(parent_cohort=self) for x in r.sub_readings]
+                    nr.mapping_tags = {mt}
+                    nr.mapped = True
+                    new_readings.append(nr)
+            else:
+                new_readings.append(r)
+        self.readings = new_readings
+        return True
 
     def ordered_readings(self) -> List[Reading]:
         """The readings in the order vislcg3 prints them (see remove_reading for why that is not self.readings)."""

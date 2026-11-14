@@ -33,13 +33,13 @@ class ContextualTest:
     """One contextual test with its barriers and LINKed tests."""
 
     __slots__ = ('target', 'offset', 'scan_first', 'scan_all', 'careful', 'not_', 'negate', 'absolute',
-                 'self_', 'no_barrier', 'all_', 'none_', 'barrier', 'cbarrier', 'linked_test', 'raw_pos', 'ors')
+                 'self_', 'no_barrier', 'all_', 'none_', 'barrier', 'cbarrier', 'linked_test', 'raw_pos', 'ors', 'sub')
 
     def __init__(self, target: SetDefinition, offset: int = 0, scan_first: bool = False, scan_all: bool = False,
                  careful: bool = False, not_: bool = False, negate: bool = False, absolute: bool = False,
                  self_: bool = False, no_barrier: bool = False, all_: bool = False, none_: bool = False,
                  barrier: Optional[SetDefinition] = None, cbarrier: Optional[SetDefinition] = None,
-                 linked_test: Optional['ContextualTest'] = None, raw_pos: str = ""):
+                 linked_test: Optional['ContextualTest'] = None, raw_pos: str = "", sub: Optional[int] = None):
         self.target = target
         self.offset = offset
         self.scan_first = scan_first
@@ -56,6 +56,7 @@ class ContextualTest:
         self.cbarrier = cbarrier
         self.linked_test = linked_test
         self.raw_pos = raw_pos
+        self.sub = sub
         self.ors: list = []        # (test) OR (test): holds if any alternative does
 
     @property
@@ -86,7 +87,9 @@ def _test_linked(window: SingleWindow, index: int, ctx: _Ctx) -> bool:
 def _helper(window, index, reading, target: SetDefinition, ctx: Optional[_Ctx]) -> bool:
     """doesSetMatchCohort_helper"""
     ret = False
-    if target.matches_reading(reading):
+    if ctx is not None and ctx.test is not None and ctx.test.sub is not None and not ctx.in_barrier:
+        reading = reading.sub_reading(ctx.test.sub) if hasattr(reading, 'sub_reading') else reading
+    if reading is not None and target.matches_reading(reading):
         ret = True
         if ctx is not None:
             ctx.matched_target = True

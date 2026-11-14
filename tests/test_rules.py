@@ -156,6 +156,58 @@ class TestRules(unittest.TestCase):
         res = Disambiguator(GrammarParser().parse(g.replace('AFTER T', 'AFTER T (NEGATE 1 ("x"))'))).run_text('"<a>"\n\t"a" T\n"<b>"\n\t"b" U\n')
         self.assertEqual(res.count('"<x>"'), 1)
 
+    # -- sub-readings, weights and mapping tags, as vislcg3 does them -----------------------------------------
+    COMPOUND = (
+        '"<w>"\n'
+        '\t"head" N top1 <W:0.0>\n'
+        '\t\t"p1" N s1 <W:0.0>\n'
+        '\t\t\t"p2" N s2 <W:0.0>\n'
+        '\t"whole" N whole <W:0.0>\n'
+    )
+    SUBHEAD = 'DELIMITERS = "<$.>" ;\nSUBREADINGS = LTR ;\nLIST N = N ;\nLIST s1 = s1 ;\nLIST s2 = s2 ;\nSECTION\n'
+
+    def _run(self, grammar_text, input_text):
+        return Disambiguator(GrammarParser().parse(grammar_text), trace=True).run_text(input_text)
+
+    def test_sub_n_target_matches_the_nth_sub_reading(self):
+        res = self._run(self.SUBHEAD + 'REMOVE SUB:2 (s2) ;\n', self.COMPOUND)
+        self.assertNotIn('"head"', res)             # the whole reading goes when its sub-reading 2 has s2
+        self.assertIn('"whole"', res)
+        res = self._run(self.SUBHEAD + 'REMOVE SUB:2 (s1) ;\n', self.COMPOUND)
+        self.assertIn('"head"', res)                # sub-reading 2 is not s1: nothing is removed
+        res = self._run(self.SUBHEAD + 'REMOVE SUB:-1 (s2) ;\n', self.COMPOUND)
+        self.assertNotIn('"head"', res)             # -1 is the last sub-reading
+
+    def test_context_slash_n_looks_at_the_nth_sub_reading(self):
+        def hit(pos, tag):
+            g = self.SUBHEAD + 'ADD (HIT) (whole) IF (%s %s) ;\n' % (pos, tag)
+            return 'HIT' in self._run(g, self.COMPOUND)
+        self.assertTrue(hit('0/1', 's1'))
+        self.assertTrue(hit('0/2', 's2'))
+        self.assertTrue(hit('0/-1', 's2'))
+        self.assertFalse(hit('0/1', 's2'))
+        self.assertFalse(hit('0/3', 's2'))
+
+    def test_weight_tags_compare_by_number(self):
+        g = 'DELIMITERS = "<$.>" ;\nLIST W0 = <W:0> ;\nSECTION\nADD (HIT) W0 ;\n'
+        res = self._run(g, '"<a>"\n\t"a" N <W:0.0>\n"<b>"\n\t"b" N <W:2.0>\n')
+        self.assertIn('"a" N <W:0.0> HIT', res)
+        self.assertNotIn('"b" N <W:2.0> HIT', res)
+
+    def test_tags_added_by_a_rule_come_in_vislcg3_order(self):
+        g = 'DELIMITERS = "<$.>" ;\nLIST CC = CC ;\nSECTION\nMAP (@P Q @R) TARGET CC ;\n'
+        res = self._run(g, '"<a>"\n\t"a" CC\n"<b>"\n\t"b" N\n')
+        self.assertIn('"a" CC Q @R @P', res)        # the plain tags, then the mapping tags with the last one first
+
+    def test_a_reading_with_two_mapping_tags_is_split_when_a_rule_targets_one(self):
+        head = 'DELIMITERS = "<$.>" ;\nLIST CC = CC ;\nLIST CNP = @CNP ;\nSECTION\nMAP (@CNP @CVP) TARGET CC ;\n'
+        inp = '"<a>"\n\t"a" CC\n"<b>"\n\t"b" N\n'
+        res = self._run(head + 'REMOVE CNP ;\n', inp)
+        self.assertIn('"a" CC @CVP', res)
+        self.assertNotIn('@CVP @CNP', res)
+        res = self._run(head + 'REMOVE (@X) ;\n', inp)         # a target that matches no mapping tag leaves them together
+        self.assertIn('"a" CC @CVP @CNP', res)
+
 
 if __name__ == '__main__':
     unittest.main()
